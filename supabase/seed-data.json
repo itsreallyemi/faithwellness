@@ -1,0 +1,527 @@
+{
+  "_note": "FICTIONAL sample counselors from design/screens/Counselor-Profiles.dc.html. Replace before launch. Source for supabase/seed.sql (npm run seed:sql) and for the app when Supabase isn't configured.",
+  "focusAreas": [
+    {
+      "slug": "marriage",
+      "label": "Marriage",
+      "featured": true
+    },
+    {
+      "slug": "trauma",
+      "label": "Trauma",
+      "featured": true
+    },
+    {
+      "slug": "abuse-recovery",
+      "label": "Abuse recovery",
+      "featured": true
+    },
+    {
+      "slug": "financial",
+      "label": "Financial",
+      "featured": true
+    },
+    {
+      "slug": "grief",
+      "label": "Grief & loss",
+      "featured": true
+    },
+    {
+      "slug": "anxiety",
+      "label": "Anxiety",
+      "featured": true
+    },
+    {
+      "slug": "ministry-burnout",
+      "label": "Ministry burnout",
+      "featured": true
+    },
+    {
+      "slug": "premarital",
+      "label": "Premarital",
+      "featured": false
+    },
+    {
+      "slug": "parenting",
+      "label": "Parenting",
+      "featured": false
+    }
+  ],
+  "churches": [
+    {
+      "slug": "grace-fellowship",
+      "name": "Grace Fellowship",
+      "city": "Pasadena, CA",
+      "denomination": "Non-denominational"
+    },
+    {
+      "slug": "cornerstone-church",
+      "name": "Cornerstone Church",
+      "city": "Riverside, CA",
+      "denomination": "Baptist"
+    },
+    {
+      "slug": "hope-community",
+      "name": "Hope Community Church",
+      "city": "Irvine, CA",
+      "denomination": "Non-denominational"
+    },
+    {
+      "slug": "living-waters",
+      "name": "Living Waters Presbyterian",
+      "city": "Long Beach, CA",
+      "denomination": "Presbyterian"
+    },
+    {
+      "slug": "redeemer-city",
+      "name": "Redeemer City Church",
+      "city": "Los Angeles, CA",
+      "denomination": "Non-denominational"
+    }
+  ],
+  "counselors": [
+    {
+      "slug": "ruth-okafor",
+      "name": "Rev. Ruth Okafor",
+      "preferredName": "Ruth",
+      "title": "Pastoral Counselor",
+      "church": "grace-fellowship",
+      "yearsMinistry": 18,
+      "languages": [
+        "English",
+        "Igbo"
+      ],
+      "summary": "Walking with couples and individuals through conflict, loss and rebuilding trust.",
+      "about": [
+        "I grew up in a pastor’s home in Lagos and was ordained after seminary in California. For nearly two decades I’ve sat with couples on the edge of giving up and individuals carrying grief they never had room to name.",
+        "I believe no story is too broken for grace — and that healing usually happens slowly, in honest conversation, with someone who won’t rush you."
+      ],
+      "approach": "We start where you are. I pair trauma-informed practice with Scripture and prayer — only as much as you want — so faith becomes a source of strength, not pressure. If you need clinical support beyond pastoral care, I’ll help you find it.",
+      "verse": "He heals the brokenhearted and binds up their wounds.",
+      "verseRef": "Psalm 147:3",
+      "focusAreas": [
+        "marriage",
+        "trauma",
+        "grief"
+      ],
+      "helpWith": [
+        "Marriage",
+        "Rebuilding trust",
+        "Trauma",
+        "Grief & loss",
+        "Life transitions",
+        "Women in ministry"
+      ],
+      "badges": [
+        "AACC Certified",
+        "M.Div.",
+        "Trauma-informed",
+        "Ordained 2008"
+      ],
+      "credentials": [
+        {
+          "label": "M.Div., Pastoral Care",
+          "issuer": "[Seminary name]",
+          "year": 2007
+        },
+        {
+          "label": "Board Certified Christian Counselor",
+          "issuer": "AACC · [credential ID]"
+        },
+        {
+          "label": "Trauma-Informed Care certificate",
+          "issuer": "[Issuing body]",
+          "year": 2019
+        }
+      ],
+      "fee30Cents": 4500,
+      "fee60Cents": 8000,
+      "offers30": true,
+      "offers60": true,
+      "slidingScale": true,
+      "freeForMembers": false,
+      "feeNote": "Sliding scale",
+      "avatarTint": "#FFE9DF",
+      "timeZone": "America/Los_Angeles",
+      "availability": [
+        {
+          "weekday": 2,
+          "start": "10:00",
+          "end": "15:30"
+        },
+        {
+          "weekday": 4,
+          "start": "09:30",
+          "end": "12:00"
+        }
+      ],
+      "avatarUrl": "/counselors/ruth-okafor.jpg",
+      "insurance": []
+    },
+    {
+      "slug": "daniela-mercado",
+      "name": "Daniela Mercado, LMFT",
+      "preferredName": "Daniela",
+      "title": "Marriage & Family Therapist",
+      "church": "cornerstone-church",
+      "yearsMinistry": 12,
+      "languages": [
+        "English",
+        "Spanish"
+      ],
+      "summary": "Premarital and marriage care that pairs proven methods with a faith-filled view of covenant.",
+      "about": [
+        "Before becoming a therapist I served as a youth pastor for six years, and I still lead Cornerstone’s marriage ministry with my husband, Marco.",
+        "I love helping engaged couples build a strong foundation and helping long-married couples rediscover each other."
+      ],
+      "approach": "I use proven tools like Prepare/Enrich and emotionally focused therapy, grounded in a biblical view of covenant. Sessions are practical — you’ll leave with something to try this week.",
+      "verse": "A cord of three strands is not quickly broken.",
+      "verseRef": "Ecclesiastes 4:12",
+      "focusAreas": [
+        "marriage",
+        "premarital",
+        "parenting"
+      ],
+      "helpWith": [
+        "Premarital",
+        "Marriage",
+        "Parenting",
+        "Blended families"
+      ],
+      "badges": [
+        "LMFT",
+        "Prepare/Enrich",
+        "Bilingual"
+      ],
+      "credentials": [
+        {
+          "label": "Licensed Marriage & Family Therapist",
+          "issuer": "California BBS"
+        },
+        {
+          "label": "Prepare/Enrich facilitator"
+        }
+      ],
+      "fee30Cents": 5500,
+      "fee60Cents": 9000,
+      "offers30": true,
+      "offers60": true,
+      "slidingScale": false,
+      "freeForMembers": false,
+      "feeNote": "Couples welcome",
+      "avatarTint": "#F3EEE6",
+      "timeZone": "America/Los_Angeles",
+      "availability": [
+        {
+          "weekday": 1,
+          "start": "16:15",
+          "end": "19:00"
+        },
+        {
+          "weekday": 3,
+          "start": "11:00",
+          "end": "14:00"
+        },
+        {
+          "weekday": 5,
+          "start": "18:00",
+          "end": "20:30"
+        }
+      ],
+      "avatarUrl": "/counselors/daniela-mercado.jpg",
+      "insurance": [
+        "Aetna",
+        "Blue Cross Blue Shield",
+        "Cigna",
+        "Magellan"
+      ]
+    },
+    {
+      "slug": "sarah-park",
+      "name": "Sarah Park, LPC",
+      "preferredName": "Sarah",
+      "title": "Licensed Professional Counselor",
+      "church": "hope-community",
+      "yearsMinistry": 10,
+      "languages": [
+        "English",
+        "Korean"
+      ],
+      "summary": "Gentle, paced trauma care for survivors — you set the pace, always.",
+      "about": [
+        "I serve on the care team at Hope Community and specialize in helping survivors of abuse find safety and their voice again.",
+        "Many of the people I work with were hurt in church settings, and I hold that with deep care."
+      ],
+      "approach": "You set the pace, always. I use EMDR and body-based tools alongside gentle conversation about faith — including your questions and doubts, which are always welcome here.",
+      "verse": "The Lord is close to the brokenhearted and saves those who are crushed in spirit.",
+      "verseRef": "Psalm 34:18",
+      "focusAreas": [
+        "trauma",
+        "abuse-recovery",
+        "anxiety"
+      ],
+      "helpWith": [
+        "Abuse recovery",
+        "Trauma",
+        "Anxiety",
+        "Church hurt"
+      ],
+      "badges": [
+        "LPC",
+        "EMDR trained",
+        "Trauma-informed"
+      ],
+      "credentials": [
+        {
+          "label": "Licensed Professional Counselor"
+        },
+        {
+          "label": "EMDR basic training"
+        }
+      ],
+      "fee30Cents": 4000,
+      "fee60Cents": 7500,
+      "offers30": true,
+      "offers60": true,
+      "slidingScale": true,
+      "freeForMembers": false,
+      "feeNote": "Sliding scale",
+      "avatarTint": "#E3F1E8",
+      "timeZone": "America/Los_Angeles",
+      "availability": [
+        {
+          "weekday": 1,
+          "start": "10:30",
+          "end": "13:00"
+        },
+        {
+          "weekday": 3,
+          "start": "09:00",
+          "end": "14:30"
+        }
+      ],
+      "avatarUrl": "/counselors/sarah-park.jpg",
+      "insurance": [
+        "Blue Cross Blue Shield",
+        "Optum",
+        "UnitedHealthcare"
+      ]
+    },
+    {
+      "slug": "james-whitfield",
+      "name": "Pastor James Whitfield",
+      "preferredName": "James",
+      "title": "Care Pastor",
+      "church": "grace-fellowship",
+      "yearsMinistry": 24,
+      "languages": [
+        "English"
+      ],
+      "summary": "Twenty years shepherding families through grief, transition and hard conversations.",
+      "about": [
+        "I’ve been a pastor for over twenty years and a widower for five. Walking through my own loss taught me more about grief than any class.",
+        "Today I lead GriefShare at Grace and meet with families facing illness, loss and big transitions."
+      ],
+      "approach": "I listen first. Then we pray, read Scripture together and talk honestly about where God feels near or far. I’ll also connect you with licensed care when you need more.",
+      "verse": "Blessed are those who mourn, for they will be comforted.",
+      "verseRef": "Matthew 5:4",
+      "focusAreas": [
+        "grief",
+        "marriage"
+      ],
+      "helpWith": [
+        "Grief & loss",
+        "Life transitions",
+        "Spiritual direction",
+        "Marriage"
+      ],
+      "badges": [
+        "M.A. Counseling",
+        "Ordained",
+        "Free for members"
+      ],
+      "credentials": [
+        {
+          "label": "M.A., Counseling"
+        },
+        {
+          "label": "Ordained minister"
+        },
+        {
+          "label": "GriefShare facilitator"
+        }
+      ],
+      "fee30Cents": 0,
+      "fee60Cents": 3000,
+      "offers30": true,
+      "offers60": true,
+      "slidingScale": false,
+      "freeForMembers": true,
+      "feeNote": "Free for Grace members",
+      "avatarTint": "#FFD8C8",
+      "timeZone": "America/Los_Angeles",
+      "availability": [
+        {
+          "weekday": 4,
+          "start": "13:30",
+          "end": "17:00"
+        },
+        {
+          "weekday": 5,
+          "start": "10:00",
+          "end": "12:00"
+        }
+      ],
+      "avatarUrl": "/counselors/james-whitfield.jpg",
+      "insurance": []
+    },
+    {
+      "slug": "abigail-nwosu",
+      "name": "Abigail Nwosu, CFP®",
+      "preferredName": "Abigail",
+      "title": "Biblical Financial Counselor",
+      "church": "living-waters",
+      "yearsMinistry": 9,
+      "languages": [
+        "English",
+        "Yoruba"
+      ],
+      "summary": "Practical, shame-free help with debt, budgeting and generosity as a couple.",
+      "about": [
+        "I spent ten years in banking before answering a call to help families find freedom from money stress.",
+        "As a deacon at Living Waters I lead our budgeting ministry, and I’ve seen how financial peace can heal a marriage."
+      ],
+      "approach": "No shame, ever. We look at the numbers together, set goals rooted in stewardship and generosity, and build a plan that fits real life — then I check in so you stay on track.",
+      "verse": "The plans of the diligent lead surely to abundance.",
+      "verseRef": "Proverbs 21:5",
+      "focusAreas": [
+        "financial",
+        "marriage"
+      ],
+      "helpWith": [
+        "Debt & budgeting",
+        "Couples & money",
+        "Generosity",
+        "Job loss"
+      ],
+      "badges": [
+        "CFP®",
+        "Crown Financial",
+        "Deacon"
+      ],
+      "credentials": [
+        {
+          "label": "CERTIFIED FINANCIAL PLANNER™"
+        },
+        {
+          "label": "Crown Financial Ministries coach"
+        }
+      ],
+      "fee30Cents": 3500,
+      "fee60Cents": 6000,
+      "offers30": true,
+      "offers60": true,
+      "slidingScale": false,
+      "freeForMembers": false,
+      "feeNote": "First session $20",
+      "avatarTint": "#FFF4EF",
+      "timeZone": "America/Los_Angeles",
+      "availability": [
+        {
+          "weekday": 1,
+          "start": "11:00",
+          "end": "13:00"
+        },
+        {
+          "weekday": 1,
+          "start": "19:00",
+          "end": "21:00"
+        },
+        {
+          "weekday": 6,
+          "start": "09:00",
+          "end": "11:30"
+        }
+      ],
+      "avatarUrl": "/counselors/abigail-nwosu.jpg",
+      "insurance": []
+    },
+    {
+      "slug": "miriam-levy-cole",
+      "name": "Dr. Miriam Levy-Cole",
+      "preferredName": "Miriam",
+      "title": "Clinical Psychologist",
+      "church": "redeemer-city",
+      "yearsMinistry": 15,
+      "languages": [
+        "English",
+        "Hebrew"
+      ],
+      "summary": "Evidence-based therapy for couples healing after betrayal, with room for faith.",
+      "about": [
+        "I’m a clinical psychologist and a member of Redeemer City, where I help train our lay counselors.",
+        "My work centers on couples healing after betrayal and on pastors and ministry leaders facing burnout."
+      ],
+      "approach": "I bring evidence-based therapy — Gottman Method, CBT — into conversation with your faith, honoring your convictions while giving you tools that have research behind them.",
+      "verse": "Come to me, all you who are weary and burdened, and I will give you rest.",
+      "verseRef": "Matthew 11:28",
+      "focusAreas": [
+        "marriage",
+        "trauma",
+        "ministry-burnout",
+        "anxiety"
+      ],
+      "helpWith": [
+        "Affair recovery",
+        "Ministry burnout",
+        "Depression",
+        "Marriage"
+      ],
+      "badges": [
+        "PsyD",
+        "Gottman Level 2",
+        "Licensed in CA"
+      ],
+      "credentials": [
+        {
+          "label": "Doctor of Psychology (PsyD)"
+        },
+        {
+          "label": "Gottman Method Couples Therapy, Level 2"
+        },
+        {
+          "label": "Licensed Psychologist",
+          "issuer": "California Board of Psychology"
+        }
+      ],
+      "fee30Cents": 6000,
+      "fee60Cents": 9000,
+      "offers30": true,
+      "offers60": true,
+      "slidingScale": false,
+      "freeForMembers": false,
+      "feeNote": "Superbill available",
+      "avatarTint": "#F3EEE6",
+      "timeZone": "America/Los_Angeles",
+      "availability": [
+        {
+          "weekday": 2,
+          "start": "08:00",
+          "end": "10:00"
+        },
+        {
+          "weekday": 5,
+          "start": "15:00",
+          "end": "18:00"
+        }
+      ],
+      "avatarUrl": "/counselors/miriam-levy-cole.jpg",
+      "insurance": [
+        "Aetna",
+        "Anthem",
+        "Cigna",
+        "UnitedHealthcare"
+      ]
+    }
+  ]
+}

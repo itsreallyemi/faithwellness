@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>FaithWellness design system</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#B34A2A}a:hover{color:#8A3A20}
+.serif{font-family:'Fraunces',Georgia,serif;font-optical-sizing:auto}
+</style>
+</helmet>
+<div style="width: 1440px; height: 1820px; box-sizing: border-box; padding: 72px 80px; background: #FAF7F2; color: #2D3748; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; display: flex; flex-direction: column; gap: 56px">
+
+  <header style="display: flex; justify-content: space-between; align-items: flex-end; gap: 24px">
+    <div style="display: flex; flex-direction: column; gap: 10px">
+      <div style="display: flex; align-items: center; gap: 12px">
+        <svg width="36" height="36" viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="18" fill="#FFD8C8"></circle><path d="M13 26c0-6 2-9 5-11 3 2 5 5 5 11M18 15c-1-3 0-6 3-7" fill="none" stroke="#B34A2A" stroke-width="2" stroke-linecap="round"></path></svg>
+        <span class="serif" style="font-size: 22px; font-weight: 600">FaithWellness</span>
+      </div>
+      <h1 class="serif" style="margin: 0; font-size: 56px; line-height: 1.05; font-weight: 500; letter-spacing: -0.01em">Design system &amp; core components</h1>
+      <p style="margin: 0; font-size: 17px; color: #4A5568; max-width: 720px; line-height: 1.55">Warm, quiet, trustworthy. Generous space, large rounded cards and a serif voice for moments of care; a clean sans for everything you act on.</p>
+    </div>
+    <div style="font-size: 13px; color: #5A6476; text-align: right; line-height: 1.6">v0.1 · Web desktop + mobile web<br>Fraunces / Plus Jakarta Sans</div>
+  </header>
+
+  <!-- Tokens row -->
+  <section style="display: grid; grid-template-columns: 1.35fr 1fr; gap: 32px">
+    <div style="background: #FFFFFF; border: 1px solid #EFE7DD; border-radius: 28px; padding: 32px; display: flex; flex-direction: column; gap: 22px; box-shadow: 0 1px 2px rgba(45,55,72,.04), 0 8px 24px rgba(45,55,72,.06)">
+      <div style="display: flex; justify-content: space-between; align-items: baseline"><h2 class="serif" style="margin: 0; font-size: 26px; font-weight: 500">Color</h2><span style="font-size: 13px; color: #5A6476">Contrast checked against WCAG AA</span></div>
+      <div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #5A6476">Peach — primary</div>
+      <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 10px">
+        <div style="display: flex; flex-direction: column; gap: 6px"><div style="height: 64px; border-radius: 14px; background: #FFF4EF; border: 1px solid #F3E4DB"></div><b style="font-size: 12px">peach-50</b><span style="font-size: 12px; color: #4A5568">#FFF4EF</span></div>
+        <div style="display: flex; flex-direction: column; gap: 6px"><div style="height: 64px; border-radius: 14px; background: #FFE9DF"></div><b style="font-size: 12px">peach-100</b><span style="font-size: 12px; color: #4A5568">#FFE9DF</span></div>
+        <div style="display: flex; flex-direction: column; gap: 6px"><div style="height: 64px; border-radius: 14px; background: #FFD8C8"></div><b style="font-size: 12px">peach-200</b><span style="font-size: 12px; color: #4A5568">#FFD8C8</span></div>
+        <div style="display: flex; flex-direction: column; gap: 6px"><div style="height: 64px; border-radius: 14px; background: #FF9C7F"></div><b style="font-size: 12px">peach-400</b><span style="font-size: 12px; color: #4A5568">#FF9C7F</span></div>
+        <div style="display: flex; flex-direction: column; gap: 6px"><div style="height: 64px; border-radius: 14px; background: #FF7A59; outline: 2px solid #2D3748; outline-offset: 2px"></div><b style="font-size: 12px">peach-500</b><span style="font-size: 12px; color: #4A5568">#FF7A59</span></div>
+        <div style="display: flex; flex-direction: column; gap: 6px"><div style="height: 64px; border-radius: 14px; background: #B34A2A"></div><b style="font-size: 12px">peach-700</b><span style="font-size: 12px; color: #4A5568">#B34A2A</span></div>
+        <div style="display: flex; flex-direction: column; gap: 6px"><div style="height: 64px; border-radius: 14px; background: #8A3A20"></div><b style="font-size: 12px">peach-800</b><span style="font-size: 12px; color: #4A5568">#8A3A20</span></div>
+      </div>
+      <div style="font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #5A6476">Neutrals &amp; semantic</div>
+      <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 10px">
+        <div style="display: flex; flex-direction: column; gap: 6px"><div style="height: 64px; border-radius: 14px; background: #FAF7F2; border: 1px solid #E2E8F0"></div><b style="font-size: 12px">cream</b><span style="font-size: 12px; color: #4A5568">#FAF7F2</span></div>
+        <div style="display: flex; flex-direction: column; gap: 6px"><div style="height: 64px; border-radius: 14px; background: #F3EEE6"></div><b style="font-size: 12px">cream-200</b><span style="font-size: 12px; color: #4A5568">#F3EEE6</span></div>
+        <div style="display: flex; flex-direction: column; gap: 6px"><div style="height: 64px; border-radius: 14px; background: #E2E8F0"></div><b style="font-size: 12px">border</b><span style="font-size: 12px; color: #4A5568">#E2E8F0</span></div>
+        <div style="display: flex; flex-direction: column; gap: 6px"><div style="height: 64px; border-radius: 14px; background: #5A6476"></div><b style="font-size: 12px">slate-500</b><span style="font-size: 12px; color: #4A5568">#5A6476</span></div>
+        <div style="display: flex; flex-direction: column; gap: 6px"><div style="height: 64px; border-radius: 14px; background: #2D3748"></div><b style="font-size: 12px">slate-900</b><span style="font-size: 12px; color: #4A5568">#2D3748</span></div>
+        <div style="display: flex; flex-direction: column; gap: 6px"><div style="height: 64px; border-radius: 14px; background: #2F6B4F"></div><b style="font-size: 12px">sage-700</b><span style="font-size: 12px; color: #4A5568">#2F6B4F</span></div>
+        <div style="display: flex; flex-direction: column; gap: 6px"><div style="height: 64px; border-radius: 14px; background: #E3F1E8"></div><b style="font-size: 12px">sage-100</b><span style="font-size: 12px; color: #4A5568">#E3F1E8</span></div>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; font-size: 13px; line-height: 1.5">
+        <div style="background: #FFF4EF; border-radius: 14px; padding: 14px"><b>Primary button</b><br>peach-500 fill, slate-900 label · 4.7:1</div>
+        <div style="background: #FFF4EF; border-radius: 14px; padding: 14px"><b>Links &amp; active text</b><br>peach-700 on cream · 5.0:1</div>
+        <div style="background: #FFF4EF; border-radius: 14px; padding: 14px"><b>Never</b><br>white text on peach-500 · 2.6:1 fails</div>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 32px">
+      <div style="background: #FFFFFF; border: 1px solid #EFE7DD; border-radius: 28px; padding: 32px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 1px 2px rgba(45,55,72,.04), 0 8px 24px rgba(45,55,72,.06)">
+        <h2 class="serif" style="margin: 0 0 4px; font-size: 26px; font-weight: 500">Typography</h2>
+        <div style="display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid #F0EAE2; padding-bottom: 10px"><span class="serif" style="font-size: 44px; font-weight: 500; line-height: 1.1">Find steady care</span><span style="font-size: 12px; color: #5A6476">Display · Fraunces 500 · 44/48</span></div>
+        <div style="display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid #F0EAE2; padding-bottom: 10px"><span class="serif" style="font-size: 28px; font-weight: 500">Counselor profile</span><span style="font-size: 12px; color: #5A6476">H2 · Fraunces 500 · 28/34</span></div>
+        <div style="display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid #F0EAE2; padding-bottom: 10px"><span style="font-size: 20px; font-weight: 600">Upcoming sessions</span><span style="font-size: 12px; color: #5A6476">H3 · Jakarta 600 · 20/28</span></div>
+        <div style="display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid #F0EAE2; padding-bottom: 10px"><span style="font-size: 16px">Body copy reads at 16 on 26.</span><span style="font-size: 12px; color: #5A6476">Body · Jakarta 400 · 16/26</span></div>
+        <div style="display: flex; justify-content: space-between; align-items: baseline"><span style="font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #5A6476">Overline label</span><span style="font-size: 12px; color: #5A6476">Label · Jakarta 700 · 12 / +8%</span></div>
+      </div>
+      <div style="background: #FFFFFF; border: 1px solid #EFE7DD; border-radius: 28px; padding: 32px; display: flex; flex-direction: column; gap: 18px; box-shadow: 0 1px 2px rgba(45,55,72,.04), 0 8px 24px rgba(45,55,72,.06)">
+        <h2 class="serif" style="margin: 0; font-size: 26px; font-weight: 500">Shape, elevation, space</h2>
+        <div style="display: flex; gap: 14px; align-items: flex-end">
+          <div style="display: flex; flex-direction: column; gap: 6px; align-items: center"><div style="width: 56px; height: 56px; background: #FFD8C8; border-radius: 8px"></div><span style="font-size: 12px">sm 8</span></div>
+          <div style="display: flex; flex-direction: column; gap: 6px; align-items: center"><div style="width: 56px; height: 56px; background: #FFD8C8; border-radius: 14px"></div><span style="font-size: 12px">md 14</span></div>
+          <div style="display: flex; flex-direction: column; gap: 6px; align-items: center"><div style="width: 56px; height: 56px; background: #FFD8C8; border-radius: 20px"></div><span style="font-size: 12px">lg 20</span></div>
+          <div style="display: flex; flex-direction: column; gap: 6px; align-items: center"><div style="width: 56px; height: 56px; background: #FFD8C8; border-radius: 28px"></div><span style="font-size: 12px">xl 28</span></div>
+          <div style="display: flex; flex-direction: column; gap: 6px; align-items: center"><div style="width: 80px; height: 40px; background: #FFD8C8; border-radius: 999px"></div><span style="font-size: 12px">pill</span></div>
+        </div>
+        <div style="font-size: 13px; line-height: 1.7; color: #2D3748">
+          <div><b>shadow-card</b> · 0 1px 2px rgba(45,55,72,.04), 0 8px 24px rgba(45,55,72,.06)</div>
+          <div><b>shadow-raised</b> · 0 16px 40px rgba(45,55,72,.10) — hover, popovers</div>
+          <div><b>border-card</b> · 1px #EFE7DD (warm) · inputs 1px #E2E8F0</div>
+          <div><b>space</b> · 4 · 8 · 12 · 16 · 24 · 32 · 48 · 72 — cards pad 24 (mobile) / 32 (desktop)</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Components -->
+  <section style="display: flex; flex-direction: column; gap: 20px">
+    <div style="display: flex; justify-content: space-between; align-items: baseline"><h2 class="serif" style="margin: 0; font-size: 32px; font-weight: 500">Components</h2><span style="font-size: 13px; color: #5A6476">Filter sidebar · Staff profile card · Integration settings card</span></div>
+    <div style="display: flex; gap: 32px; align-items: flex-start">
+
+      <!-- Filter sidebar -->
+      <aside aria-label="Filter counselors" style="width: 300px; flex: none; background: #FFFFFF; border: 1px solid #EFE7DD; border-radius: 28px; padding: 24px; display: flex; flex-direction: column; gap: 20px; box-shadow: 0 1px 2px rgba(45,55,72,.04), 0 8px 24px rgba(45,55,72,.06)">
+        <div style="display: flex; justify-content: space-between; align-items: center"><span style="font-size: 17px; font-weight: 600">Filters</span><button style="border: 0; background: none; color: #B34A2A; font: inherit; font-size: 14px; font-weight: 600; min-height: 44px; cursor: pointer">Clear all</button></div>
+        <div style="display: flex; flex-direction: column; gap: 10px">
+          <span style="font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #5A6476">Counseling focus</span>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px">
+            <button aria-pressed="true" style="border: 1px solid #FF7A59; background: #FFD8C8; color: #8A3A20; border-radius: 999px; padding: 8px 14px; font: inherit; font-size: 14px; font-weight: 600">Marriage ✓</button>
+            <button aria-pressed="true" style="border: 1px solid #FF7A59; background: #FFD8C8; color: #8A3A20; border-radius: 999px; padding: 8px 14px; font: inherit; font-size: 14px; font-weight: 600">Trauma ✓</button>
+            <button aria-pressed="false" style="border: 1px solid #E2E8F0; background: #FFFFFF; color: #2D3748; border-radius: 999px; padding: 8px 14px; font: inherit; font-size: 14px">Abuse recovery</button>
+            <button aria-pressed="false" style="border: 1px solid #E2E8F0; background: #FFFFFF; color: #2D3748; border-radius: 999px; padding: 8px 14px; font: inherit; font-size: 14px">Financial</button>
+            <button aria-pressed="false" style="border: 1px solid #E2E8F0; background: #FFFFFF; color: #2D3748; border-radius: 999px; padding: 8px 14px; font: inherit; font-size: 14px">Grief</button>
+          </div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px">
+          <span style="font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #5A6476">Denomination</span>
+          <label style="display: flex; gap: 10px; align-items: center; font-size: 15px"><input type="checkbox" checked style="width: 18px; height: 18px; accent-color: #B34A2A"> Non-denominational <span style="margin-left: auto; color: #5A6476; font-size: 13px">24</span></label>
+          <label style="display: flex; gap: 10px; align-items: center; font-size: 15px"><input type="checkbox" style="width: 18px; height: 18px; accent-color: #B34A2A"> Baptist <span style="margin-left: auto; color: #5A6476; font-size: 13px">11</span></label>
+          <label style="display: flex; gap: 10px; align-items: center; font-size: 15px"><input type="checkbox" style="width: 18px; height: 18px; accent-color: #B34A2A"> Presbyterian <span style="margin-left: auto; color: #5A6476; font-size: 13px">7</span></label>
+          <button style="align-self: flex-start; border: 0; background: none; padding: 0; color: #B34A2A; font: inherit; font-size: 14px; font-weight: 600">Show 6 more</button>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px">
+          <label for="ds-church" style="font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #5A6476">Church affiliation</label>
+          <input id="ds-church" placeholder="Search churches" style="border: 1px solid #E2E8F0; border-radius: 14px; padding: 12px 14px; font: inherit; font-size: 15px; background: #FAF7F2">
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px">
+          <span style="font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #5A6476">Session fee (60 min)</span>
+          <div style="position: relative; height: 24px"><div style="position: absolute; top: 10px; left: 0; right: 0; height: 4px; border-radius: 4px; background: #F3EEE6"></div><div style="position: absolute; top: 10px; left: 0; width: 55%; height: 4px; border-radius: 4px; background: #FF7A59"></div><div style="position: absolute; top: 2px; left: calc(55% - 10px); width: 20px; height: 20px; border-radius: 50%; background: #FFFFFF; border: 2px solid #B34A2A"></div></div>
+          <div style="display: flex; justify-content: space-between; font-size: 13px; color: #4A5568"><span>Free</span><span>Up to $90</span><span>$160+</span></div>
+          <label style="display: flex; gap: 10px; align-items: center; font-size: 15px"><input type="checkbox" checked style="width: 18px; height: 18px; accent-color: #B34A2A"> Sliding scale offered</label>
+        </div>
+      </aside>
+
+      <!-- Profile card -->
+      <article style="width: 440px; flex: none; background: #FFFFFF; border: 1px solid #EFE7DD; border-radius: 28px; padding: 28px; display: flex; flex-direction: column; gap: 18px; box-shadow: 0 1px 2px rgba(45,55,72,.04), 0 8px 24px rgba(45,55,72,.06)">
+        <div style="display: flex; gap: 18px; align-items: center">
+          <div style="width: 88px; height: 88px; flex: none; border-radius: 28px; background: #FFE9DF; border: 3px solid #FFFFFF; outline: 1px solid #FFD8C8; display: flex; align-items: center; justify-content: center"><span class="serif" style="font-size: 32px; color: #8A3A20">RO</span></div>
+          <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0">
+            <h3 class="serif" style="margin: 0; font-size: 24px; font-weight: 500">Rev. Ruth Okafor</h3>
+            <span style="font-size: 14px; color: #4A5568">Pastoral Counselor · Grace Fellowship</span>
+            <span style="font-size: 13px; color: #2F6B4F; font-weight: 600; display: flex; align-items: center; gap: 6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M5 12l4 4 10-10"></path></svg>Next opening Tue 10:00 AM</span>
+          </div>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px">
+          <span style="background: #E3F1E8; color: #2F6B4F; border-radius: 999px; padding: 5px 12px; font-size: 13px; font-weight: 600">AACC Certified</span>
+          <span style="background: #E3F1E8; color: #2F6B4F; border-radius: 999px; padding: 5px 12px; font-size: 13px; font-weight: 600">M.Div.</span>
+          <span style="background: #E3F1E8; color: #2F6B4F; border-radius: 999px; padding: 5px 12px; font-size: 13px; font-weight: 600">Trauma-informed</span>
+        </div>
+        <p style="margin: 0; font-size: 15px; line-height: 1.6; color: #2D3748">Walking with couples and individuals through seasons of conflict, loss and rebuilding trust — grounded in Scripture and trauma-informed practice.</p>
+        <div style="display: flex; flex-wrap: wrap; gap: 6px">
+          <span style="background: #F3EEE6; border-radius: 8px; padding: 4px 10px; font-size: 13px">Marriage</span>
+          <span style="background: #F3EEE6; border-radius: 8px; padding: 4px 10px; font-size: 13px">Trauma</span>
+          <span style="background: #F3EEE6; border-radius: 8px; padding: 4px 10px; font-size: 13px">Non-denominational</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; background: #FAF7F2; border-radius: 14px; padding: 12px 16px">
+          <span style="font-size: 14px; color: #4A5568">Session fees</span>
+          <span style="font-size: 15px"><b>$45</b> / 30 min · <b>$80</b> / 60 min</span>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+          <a href="#" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 56px; border-radius: 999px; border: 1.5px solid #2D3748; color: #2D3748; text-decoration: none; font-weight: 600; font-size: 15px">Book 30 min</a>
+          <a href="#" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 56px; border-radius: 999px; background: #FF7A59; color: #2D3748; text-decoration: none; font-weight: 700; font-size: 15px">Book 60 min</a>
+        </div>
+        <a href="#" style="align-self: center; font-size: 14px; font-weight: 600">Send a message first</a>
+      </article>
+
+      <!-- Integration settings card -->
+      <section aria-label="Calendar integrations" style="flex: 1; min-width: 0; background: #FFFFFF; border: 1px solid #EFE7DD; border-radius: 28px; padding: 28px; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 1px 2px rgba(45,55,72,.04), 0 8px 24px rgba(45,55,72,.06)">
+        <div style="display: flex; flex-direction: column; gap: 4px"><h3 class="serif" style="margin: 0; font-size: 24px; font-weight: 500">Calendar &amp; video</h3><span style="font-size: 14px; color: #4A5568">Connect once. We keep your availability and Meet links in sync.</span></div>
+        <div style="border: 1px solid #E2E8F0; border-radius: 20px; padding: 18px; display: flex; gap: 14px; align-items: center">
+          <div style="width: 44px; height: 44px; flex: none; border-radius: 14px; background: #F3EEE6; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2D3748" stroke-width="1.8" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg></div>
+          <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px"><b style="font-size: 15px">Google Calendar</b><span style="font-size: 13px; color: #4A5568">ruth@gracefellowship.org · 2 calendars checked for conflicts</span></div>
+          <span style="background: #E3F1E8; color: #2F6B4F; border-radius: 999px; padding: 5px 12px; font-size: 13px; font-weight: 600">Connected</span>
+        </div>
+        <div style="border: 1px solid #E2E8F0; border-radius: 20px; padding: 18px; display: flex; flex-direction: column; gap: 12px">
+          <div style="display: flex; gap: 14px; align-items: center">
+            <div style="width: 44px; height: 44px; flex: none; border-radius: 14px; background: #F3EEE6; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2D3748" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg></div>
+            <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px"><b style="font-size: 15px">Calendly</b><span style="font-size: 13px; color: #4A5568">Not connected — needed to publish your booking times</span></div>
+          </div>
+          <button style="min-height: 48px; border-radius: 999px; border: 0; background: #FF7A59; color: #2D3748; font: inherit; font-weight: 700; font-size: 15px">Connect Calendly</button>
+          <span style="font-size: 12px; color: #5A6476; line-height: 1.5">Opens Calendly sign-in (OAuth 2.0). We read event types and availability and subscribe to booking webhooks. We never see your password.</span>
+        </div>
+        <div style="border: 1px solid #E2E8F0; border-radius: 20px; padding: 18px; display: flex; gap: 14px; align-items: center">
+          <div style="width: 44px; height: 44px; flex: none; border-radius: 14px; background: #F3EEE6; display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2D3748" stroke-width="1.8" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="3"></rect><path d="M16 10l5-3v10l-5-3"></path></svg></div>
+          <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px"><b style="font-size: 15px">Auto-add Google Meet</b><span style="font-size: 13px; color: #4A5568">Every confirmed session gets a private Meet room</span></div>
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 14px; min-height: 44px"><input type="checkbox" checked style="width: 20px; height: 20px; accent-color: #B34A2A"> On</label>
+        </div>
+        <div style="display: flex; gap: 10px; align-items: flex-start; background: #FFF4EF; border-radius: 14px; padding: 12px 14px; font-size: 13px; line-height: 1.5"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B34A2A" stroke-width="2" style="flex: none; margin-top: 1px" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v5M12 16h.01"></path></svg><span>A 15-minute rest buffer is always added after each session. It can't be turned off.</span></div>
+      </section>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1820}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

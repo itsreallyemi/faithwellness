@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FaithWellness logo</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500&family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; background: #FAF7F2; color: #2D3748; font-family: "Plus Jakarta Sans", system-ui, sans-serif; }
+  main { max-width: 1100px; margin: 0 auto; padding: 48px 16px 72px; display: flex; flex-direction: column; gap: 32px; }
+  h1 { font-family: Fraunces, Georgia, serif; font-weight: 500; font-size: 40px; margin: 0; }
+  h2 { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #5A6476; margin: 0 0 12px; }
+  .grid { display: grid; gap: 24px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
+  .card { background: #fff; border: 1px solid #EFE7DD; border-radius: 28px; padding: 32px; display: flex; align-items: center; justify-content: center; min-height: 220px; box-shadow: 0 1px 2px rgba(45,55,72,.04), 0 8px 24px rgba(45,55,72,.06); }
+  .dark { background: #2D3748; border-color: #2D3748; }
+  .sizes { display: flex; align-items: flex-end; gap: 28px; flex-wrap: wrap; }
+  .sizes figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 12px; color: #5A6476; }
+  img { display: block; max-width: 100%; }
+  p { margin: 0; color: #4A5568; line-height: 1.6; }
+</style>
+</head>
+<body>
+<main>
+  <div>
+    <h1>FaithWellness logo</h1>
+    <p>A solid, rounded slate church with an arched door and a peach cross on the roof.</p>
+  </div>
+
+  <section>
+    <h2>Mark</h2>
+    <div class="grid">
+      <div class="card"><img src="mark.svg" width="160" alt="FaithWellness mark on white"></div>
+      <div class="card dark"><img src="mark-reversed.svg" width="160" alt="FaithWellness mark on slate"></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Alternative: cross on the building</h2>
+    <div class="grid">
+      <div class="card"><img src="mark-alt-cross-on-building.svg" width="160" alt="Alternative mark with the cross on the front of the building"></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Horizontal</h2>
+    <div class="card"><object data="logo-horizontal.svg" type="image/svg+xml" width="520" aria-label="FaithWellness horizontal logo"></object></div>
+  </section>
+
+  <section>
+    <h2>Stacked</h2>
+    <div class="card"><object data="logo-stacked.svg" type="image/svg+xml" width="380" aria-label="FaithWellness stacked logo"></object></div>
+  </section>
+
+  <section>
+    <h2>Small sizes (app icon, browser tab, header)</h2>
+    <div class="card sizes">
+      <figure><img src="mark.svg" width="96" alt=""><figcaption>96 px</figcaption></figure>
+      <figure><img src="mark.svg" width="48" alt=""><figcaption>48 px</figcaption></figure>
+      <figure><img src="mark.svg" width="32" alt=""><figcaption>32 px (header)</figcaption></figure>
+      <figure><img src="mark.svg" width="16" alt=""><figcaption>16 px (tab)</figcaption></figure>
+    </div>
+  </section>
+</main>
+</body>
+</html>

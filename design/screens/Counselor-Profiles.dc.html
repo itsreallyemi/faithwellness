@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Counselor profiles — FaithWellness</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#B34A2A}a:hover{color:#8A3A20}
+.serif{font-family:'Fraunces',Georgia,serif}
+</style>
+</helmet>
+<div style="width: 1440px; height: 2460px; box-sizing: border-box; padding: 72px 80px; background: #FAF7F2; color: #2D3748; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; display: flex; flex-direction: column; gap: 40px">
+  <header style="display: flex; justify-content: space-between; align-items: flex-end; gap: 24px">
+    <div style="display: flex; flex-direction: column; gap: 10px">
+      <span style="font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #B34A2A">Meet our counselors</span>
+      <h1 class="serif" style="margin: 0; font-size: 52px; line-height: 1.05; font-weight: 500">Pastors &amp; ministers who walk with you</h1>
+      <p style="margin: 0; font-size: 17px; color: #4A5568; max-width: 700px; line-height: 1.55">Every counselor shares their story, how they integrate faith into care, and the seasons of life they’re best equipped to help with.</p>
+    </div>
+    <span style="font-size: 13px; color: #4A5568; text-align: right; line-height: 1.6">Profile card · full “About” view<br>Opens from “View profile” in the directory</span>
+  </header>
+
+  <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 32px; align-items: stretch">
+    <sc-for list="{{counselors}}" as="c" hint-placeholder-count="6">
+      <article style="background: #FFFFFF; border: 1px solid #EFE7DD; border-radius: 28px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 1px 2px rgba(45,55,72,.04), 0 8px 24px rgba(45,55,72,.06)">
+        <div style="background: #FFF4EF; padding: 28px 28px 22px; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center">
+          <div style="width: 120px; height: 120px; border-radius: 36px; background: {{c.tint}}; border: 4px solid #FFFFFF; outline: 1px solid #FFD8C8; display: flex; align-items: center; justify-content: center" role="img" aria-label="Photo of {{c.name}}"><span class="serif" style="font-size: 40px; color: #8A3A20">{{c.initials}}</span></div>
+          <h2 class="serif" style="margin: 6px 0 0; font-size: 26px; font-weight: 500; line-height: 1.15">{{c.name}}</h2>
+          <span style="font-size: 14px; font-weight: 600">{{c.role}}</span>
+          <span style="font-size: 13px; color: #4A5568">{{c.church}}</span>
+          <div style="display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 4px">
+            <sc-for list="{{c.badges}}" as="b" hint-placeholder-count="2"><span style="background: #E3F1E8; color: #2F6B4F; border-radius: 999px; padding: 4px 11px; font-size: 12.5px; font-weight: 600">{{b}}</span></sc-for>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-bottom: 1px solid #F0EAE2">
+          <div style="padding: 14px 8px; display: flex; flex-direction: column; align-items: center; gap: 2px; border-right: 1px solid #F0EAE2"><b style="font-size: 17px">{{c.years}}</b><span style="font-size: 12px; color: #4A5568">yrs in ministry</span></div>
+          <div style="padding: 14px 8px; display: flex; flex-direction: column; align-items: center; gap: 2px; border-right: 1px solid #F0EAE2"><b style="font-size: 17px">{{c.langs}}</b><span style="font-size: 12px; color: #4A5568">languages</span></div>
+          <div style="padding: 14px 8px; display: flex; flex-direction: column; align-items: center; gap: 2px"><b style="font-size: 17px">{{c.denom}}</b><span style="font-size: 12px; color: #4A5568">tradition</span></div>
+        </div>
+
+        <div style="padding: 24px 28px 28px; display: flex; flex-direction: column; gap: 18px; flex: 1">
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <span style="font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #5A6476">About me</span>
+            <p style="margin: 0; font-size: 15px; line-height: 1.6">{{c.about}}</p>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <span style="font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #5A6476">How I bring faith into care</span>
+            <p style="margin: 0; font-size: 15px; line-height: 1.6">{{c.approach}}</p>
+          </div>
+          <blockquote class="serif" style="margin: 0; padding: 14px 18px; background: #FAF7F2; border-radius: 16px; font-size: 16px; font-style: italic; line-height: 1.5; color: #2D3748">“{{c.verse}}”<span style="display: block; margin-top: 6px; font-family: 'Plus Jakarta Sans', sans-serif; font-style: normal; font-size: 12px; color: #4A5568">{{c.verseRef}}</span></blockquote>
+          <div style="display: flex; flex-direction: column; gap: 8px">
+            <span style="font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #5A6476">I can help with</span>
+            <div style="display: flex; flex-wrap: wrap; gap: 6px">
+              <sc-for list="{{c.tags}}" as="t" hint-placeholder-count="4"><span style="background: #F3EEE6; border-radius: 8px; padding: 5px 10px; font-size: 13px">{{t}}</span></sc-for>
+            </div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px">
+            <span style="font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #5A6476">Next openings · your time</span>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px">
+              <sc-for list="{{c.slots}}" as="s" hint-placeholder-count="3"><a href="#" style="display: inline-flex; align-items: center; min-height: 40px; padding: 0 14px; border-radius: 999px; border: 1px solid #E2E8F0; color: #2D3748; text-decoration: none; font-size: 13px; font-weight: 600">{{s}}</a></sc-for>
+            </div>
+          </div>
+
+          <div style="margin-top: auto; display: flex; flex-direction: column; gap: 12px">
+            <div style="display: flex; justify-content: space-between; align-items: center; background: #FAF7F2; border-radius: 14px; padding: 12px 16px; font-size: 14px">
+              <span style="color: #4A5568">{{c.feeNote}}</span><span><b>{{c.f30}}</b> / 30 · <b>{{c.f60}}</b> / 60 min</span>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+              <a href="#" style="display: flex; align-items: center; justify-content: center; min-height: 52px; border-radius: 999px; border: 1.5px solid #2D3748; color: #2D3748; text-decoration: none; font-weight: 600; font-size: 15px">Book 30 min</a>
+              <a href="#" style="display: flex; align-items: center; justify-content: center; min-height: 52px; border-radius: 999px; background: #FF7A59; color: #2D3748; text-decoration: none; font-weight: 700; font-size: 15px">Book 60 min</a>
+            </div>
+            <a href="Messaging-Desktop.dc.html" style="align-self: center; font-size: 14px; font-weight: 600; padding: 6px">Message {{c.first}}</a>
+          </div>
+        </div>
+      </article>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2460}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      counselors: [
+        { initials: 'RO', tint: '#FFE9DF', first: 'Ruth', name: 'Rev. Ruth Okafor', role: 'Pastoral Counselor', church: 'Grace Fellowship · Pasadena, CA', badges: ['AACC Certified', 'M.Div.', 'Trauma-informed'], years: '18', langs: '2', denom: 'Non-denom.',
+          about: 'I grew up in a pastor’s home in Lagos and was ordained after seminary in California. For nearly two decades I’ve sat with couples on the edge of giving up and individuals carrying grief they never had room to name. I believe no story is too broken for grace.',
+          approach: 'We start where you are. I pair trauma-informed practice with Scripture and prayer — only as much as you want — so faith becomes a source of strength, not pressure.',
+          verse: 'He heals the brokenhearted and binds up their wounds.', verseRef: 'Psalm 147:3',
+          tags: ['Marriage', 'Rebuilding trust', 'Trauma', 'Grief'], slots: ['Tue 10:00 AM', 'Tue 2:00 PM', 'Thu 9:30 AM'], feeNote: 'Sliding scale', f30: '$45', f60: '$80' },
+        { initials: 'DM', tint: '#F3EEE6', first: 'Daniel', name: 'Daniel Mercado, LMFT', role: 'Marriage & Family Therapist', church: 'Cornerstone Church · Riverside, CA', badges: ['LMFT', 'Prepare/Enrich', 'Bilingual'], years: '12', langs: '2', denom: 'Baptist',
+          about: 'Before becoming a therapist I served as a youth pastor for six years, and I still lead Cornerstone’s marriage ministry with my wife, Ana. I love helping engaged couples build a strong foundation and helping long-married couples rediscover each other.',
+          approach: 'I use proven tools like Prepare/Enrich and emotionally focused therapy, grounded in a biblical view of covenant. Sessions are practical — you’ll leave with something to try this week.',
+          verse: 'A cord of three strands is not quickly broken.', verseRef: 'Ecclesiastes 4:12',
+          tags: ['Premarital', 'Marriage', 'Parenting', 'Blended families'], slots: ['Today 4:15 PM', 'Wed 11:00 AM', 'Fri 6:00 PM'], feeNote: 'Couples welcome', f30: '$55', f60: '$90' },
+        { initials: 'SP', tint: '#E3F1E8', first: 'Sarah', name: 'Sarah Park, LPC', role: 'Licensed Professional Counselor', church: 'Hope Community Church · Irvine, CA', badges: ['LPC', 'EMDR trained', 'Trauma-informed'], years: '10', langs: '2', denom: 'Non-denom.',
+          about: 'I serve on the care team at Hope Community and specialize in helping survivors of abuse find safety and their voice again. Many of the people I work with were hurt in church settings, and I hold that with deep care.',
+          approach: 'You set the pace, always. I use EMDR and body-based tools alongside gentle conversation about faith — including your questions and doubts, which are always welcome here.',
+          verse: 'The Lord is close to the brokenhearted and saves those who are crushed in spirit.', verseRef: 'Psalm 34:18',
+          tags: ['Abuse recovery', 'Trauma', 'Anxiety', 'Church hurt'], slots: ['Wed 9:00 AM', 'Wed 1:00 PM', 'Mon 10:30 AM'], feeNote: 'Sliding scale', f30: '$40', f60: '$75' },
+        { initials: 'JW', tint: '#FFD8C8', first: 'James', name: 'Pastor James Whitfield', role: 'Care Pastor', church: 'Grace Fellowship · Pasadena, CA', badges: ['M.A. Counseling', 'Ordained', 'Free for members'], years: '24', langs: '1', denom: 'Non-denom.',
+          about: 'I’ve been a pastor for over twenty years and a widower for five. Walking through my own loss taught me more about grief than any class. Today I lead GriefShare at Grace and meet with families facing illness, loss and big transitions.',
+          approach: 'I listen first. Then we pray, read Scripture together and talk honestly about where God feels near or far. I’ll also connect you with licensed care when you need more.',
+          verse: 'Blessed are those who mourn, for they will be comforted.', verseRef: 'Matthew 5:4',
+          tags: ['Grief & loss', 'Life transitions', 'Spiritual direction', 'Marriage'], slots: ['Thu 1:30 PM', 'Thu 3:00 PM', 'Fri 10:00 AM'], feeNote: 'Free for Grace members', f30: 'Free', f60: '$30' },
+        { initials: 'AN', tint: '#FFF4EF', first: 'Abigail', name: 'Abigail Nwosu, CFP®', role: 'Biblical Financial Counselor', church: 'Living Waters Presbyterian · Long Beach, CA', badges: ['CFP®', 'Crown Financial', 'Deacon'], years: '9', langs: '2', denom: 'Presbyterian',
+          about: 'I spent ten years in banking before answering a call to help families find freedom from money stress. As a deacon at Living Waters I lead our budgeting ministry, and I’ve seen how financial peace can heal a marriage.',
+          approach: 'No shame, ever. We look at the numbers together, set goals rooted in stewardship and generosity, and build a plan that fits real life — then I check in so you stay on track.',
+          verse: 'The plans of the diligent lead surely to abundance.', verseRef: 'Proverbs 21:5',
+          tags: ['Debt & budgeting', 'Couples & money', 'Generosity', 'Job loss'], slots: ['Mon 11:00 AM', 'Mon 7:00 PM', 'Sat 9:00 AM'], feeNote: 'First session $20', f30: '$35', f60: '$60' },
+        { initials: 'ML', tint: '#F3EEE6', first: 'Miriam', name: 'Dr. Miriam Levy-Cole', role: 'Clinical Psychologist', church: 'Redeemer City Church · Los Angeles, CA', badges: ['PsyD', 'Gottman Level 2', 'Licensed in CA'], years: '15', langs: '2', denom: 'Non-denom.',
+          about: 'I’m a clinical psychologist and a member of Redeemer City, where I help train our lay counselors. My work centers on couples healing after betrayal and on pastors and ministry leaders facing burnout.',
+          approach: 'I bring evidence-based therapy — Gottman Method, CBT — into conversation with your faith, honoring your convictions while giving you tools that have research behind them.',
+          verse: 'Come to me, all you who are weary and burdened, and I will give you rest.', verseRef: 'Matthew 11:28',
+          tags: ['Affair recovery', 'Ministry burnout', 'Depression', 'Marriage'], slots: ['Fri 3:00 PM', 'Fri 4:30 PM', 'Tue 8:00 AM'], feeNote: 'Superbill available', f30: '$60', f60: '$90' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

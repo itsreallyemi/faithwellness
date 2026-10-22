@@ -1,0 +1,43 @@
+/* FaithWellness design tokens — import into app/globals.css (Tailwind v4 @theme) */
+@theme {
+  /* Peach — primary */
+  --color-peach-50: #FFF4EF;
+  --color-peach-100: #FFE9DF;
+  --color-peach-200: #FFD8C8;
+  --color-peach-400: #FF9C7F;
+  --color-peach-500: #FF7A59;   /* primary button fill (with slate-900 text) */
+  --color-peach-700: #B34A2A;   /* links, active text — 5.0:1 on cream */
+  --color-peach-800: #8A3A20;   /* text on peach-200 chips */
+
+  /* Neutrals */
+  --color-cream: #FAF7F2;       /* page background */
+  --color-cream-200: #F3EEE6;   /* tags, subtle fills */
+  --color-border: #E2E8F0;      /* inputs */
+  --color-border-warm: #EFE7DD; /* cards */
+  --color-divider: #F0EAE2;
+  --color-slate-500: #5A6476;   /* overline labels */
+  --color-slate-600: #4A5568;   /* secondary text */
+  --color-slate-900: #2D3748;   /* primary text */
+
+  /* Semantic */
+  --color-sage-700: #2F6B4F;    /* badges, success */
+  --color-sage-100: #E3F1E8;
+
+  /* Type */
+  --font-display: "Fraunces", Georgia, serif;
+  --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
+  /* Display 44/48 · H2 28/34 (Fraunces 500) · H3 20/28 (Jakarta 600) · Body 16/26 · Label 12, 700, +8% tracking, uppercase */
+
+  /* Radius */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;   /* cards (24px on mobile) */
+  --radius-pill: 999px;
+
+  /* Elevation */
+  --shadow-card: 0 1px 2px rgba(45,55,72,.04), 0 8px 24px rgba(45,55,72,.06);
+  --shadow-raised: 0 16px 40px rgba(45,55,72,.10);
+
+  /* Spacing scale: 4 8 12 16 24 32 48 72 — card padding 24 mobile / 32 desktop */
+}

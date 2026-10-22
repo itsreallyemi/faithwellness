@@ -1,0 +1,77 @@
+@import "tailwindcss";
+@import "../design/tokens.css";
+
+/* Point the font tokens at the next/font variables set on <html>. */
+@theme inline {
+  --font-display: var(--font-fraunces), Georgia, serif;
+  --font-sans: var(--font-jakarta), system-ui, sans-serif;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-cream font-sans text-slate-900 antialiased;
+    font-size: 16px;
+    line-height: 26px;
+  }
+  a {
+    color: var(--color-peach-700);
+  }
+  a:hover {
+    color: var(--color-peach-800);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-peach-700);
+    outline-offset: 2px;
+  }
+}
+
+@utility font-display {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-weight: 500;
+}
+
+/* Fee slider: cream track, peach fill up to --fill, white thumb with a peach-700 ring. */
+.fee-range {
+  appearance: none;
+  background: transparent;
+}
+.fee-range::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 4px;
+  background: linear-gradient(to right, var(--color-peach-500) var(--fill), var(--color-cream-200) var(--fill));
+}
+.fee-range::-moz-range-track {
+  height: 4px;
+  border-radius: 4px;
+  background: linear-gradient(to right, var(--color-peach-500) var(--fill), var(--color-cream-200) var(--fill));
+}
+.fee-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  margin-top: -8px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid var(--color-peach-700);
+}
+.fee-range::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid var(--color-peach-700);
+}
+
+/* Overline label: Jakarta 700 · 12px · +8% tracking · uppercase */
+@utility label-overline {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-slate-500);
+}
