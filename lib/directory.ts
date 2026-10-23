@@ -1,15 +1,13 @@
 import { sampleSlots } from "@/lib/sample-slots";
 import type { Counselor, Duration } from "@/lib/types";
 
-export type SortKey = "soonest" | "fee" | "experience";
+export type SortKey = "soonest" | "experience";
 
 export type DirectoryFilters = {
   q: string;
   focus: string[];
   denom: string[];
   church: string[];
-  /** Max fee in whole dollars for the chosen length; null = any. */
-  max: number | null;
   sliding: boolean;
   members: boolean;
   length: Duration;
@@ -17,7 +15,6 @@ export type DirectoryFilters = {
   sort: SortKey;
 };
 
-export const FEE_SLIDER_MAX = 160;
 
 type Params = Record<string, string | string[] | undefined>;
 
@@ -25,19 +22,17 @@ const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) 
 const list = (v: string | string[] | undefined) => one(v).split(",").filter(Boolean);
 
 export function parseFilters(params: Params): DirectoryFilters {
-  const max = Number(one(params.max));
   const sort = one(params.sort);
   return {
     q: one(params.q).trim(),
     focus: list(params.focus),
     denom: list(params.denom),
     church: list(params.church),
-    max: Number.isFinite(max) && one(params.max) !== "" && max < FEE_SLIDER_MAX ? max : null,
     sliding: one(params.sliding) === "1",
     members: one(params.members) === "1",
     length: one(params.length) === "30" ? 30 : 60,
     week: one(params.when) === "week",
-    sort: sort === "fee" || sort === "experience" ? sort : "soonest",
+    sort: sort === "experience" ? "experience" : "soonest",
   };
 }
 
@@ -48,7 +43,6 @@ export function filtersToQuery(f: DirectoryFilters) {
   if (f.focus.length) p.set("focus", f.focus.join(","));
   if (f.denom.length) p.set("denom", f.denom.join(","));
   if (f.church.length) p.set("church", f.church.join(","));
-  if (f.max !== null) p.set("max", String(f.max));
   if (f.sliding) p.set("sliding", "1");
   if (f.members) p.set("members", "1");
   if (f.length === 30) p.set("length", "30");
@@ -63,7 +57,6 @@ export function activeFilterCount(f: DirectoryFilters) {
     f.focus.length +
     f.denom.length +
     f.church.length +
-    (f.max !== null ? 1 : 0) +
     (f.sliding ? 1 : 0) +
     (f.members ? 1 : 0) +
     (f.length === 30 ? 1 : 0) +
@@ -72,10 +65,6 @@ export function activeFilterCount(f: DirectoryFilters) {
 }
 
 export type DirectoryResult = Counselor & { nextOpening: Date | null };
-
-export function feeFor(c: Counselor, length: Duration) {
-  return length === 30 ? c.fee30Cents : c.fee60Cents;
-}
 
 export function filterCounselors(all: Counselor[], f: DirectoryFilters, now = new Date()): DirectoryResult[] {
   const q = f.q.toLowerCase();
@@ -88,7 +77,6 @@ export function filterCounselors(all: Counselor[], f: DirectoryFilters, now = ne
       if (f.focus.length && !f.focus.some((s) => c.focusAreas.includes(s))) return false;
       if (f.denom.length && !f.denom.includes(c.church?.denomination ?? "")) return false;
       if (f.church.length && !f.church.includes(c.church?.slug ?? "")) return false;
-      if (f.max !== null && feeFor(c, f.length) > f.max * 100) return false;
       if (f.sliding && !c.slidingScale) return false;
       if (f.members && !c.freeForMembers) return false;
       if (f.week && !(c.nextOpening && c.nextOpening.getTime() <= weekEnd)) return false;
@@ -111,7 +99,6 @@ export function filterCounselors(all: Counselor[], f: DirectoryFilters, now = ne
 
   const never = Number.MAX_SAFE_INTEGER;
   return results.sort((a, b) => {
-    if (f.sort === "fee") return feeFor(a, f.length) - feeFor(b, f.length);
     if (f.sort === "experience") return (b.yearsMinistry ?? 0) - (a.yearsMinistry ?? 0);
     return (a.nextOpening?.getTime() ?? never) - (b.nextOpening?.getTime() ?? never);
   });

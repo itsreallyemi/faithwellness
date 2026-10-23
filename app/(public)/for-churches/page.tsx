@@ -282,10 +282,7 @@ export default async function ForChurchesPage() {
                       <b className="truncate text-[15px]">{c!.name}</b>
                       <span className="truncate text-[13px] text-slate-600">{c!.title}</span>
                     </span>
-                    <span className="flex flex-col items-end">
-                      <span className="text-[13px] text-slate-500 line-through">${Math.round(c!.fee60Cents / 100)}</span>
-                      <b className="text-sm text-sage-700">Free</b>
-                    </span>
+                    <b className="flex-none text-sm text-sage-700">Free</b>
                   </li>
                 ))}
               </ul>

@@ -11,10 +11,10 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { cn } from "@/lib/cn";
-import { formatFee } from "@/lib/format";
 import { downloadIcs } from "@/lib/prototype/ics";
 import { formatSession, formatTime } from "@/lib/prototype/format";
 import type { CounselorLite } from "@/lib/prototype/lite";
+import { feeSummary } from "./[id]/SessionView";
 import { proto, type ProtoBooking } from "@/lib/prototype/store";
 import { zoneCity } from "@/lib/time";
 
@@ -143,7 +143,7 @@ function NextSession({ booking: b, counselor: c, tz }: { booking: ProtoBooking; 
             <span className="text-[15px] text-slate-600">
               with {c.name} · {b.duration} min · Google Meet
             </span>
-            <span className="text-sm">{b.insurance ? <span className="text-slate-600">Insurance · {b.insurance.provider}</span> : b.memberCare ? <Badge>Free for members</Badge> : <span className="text-slate-600">{formatFee(b.feeCents)}, arranged with {c.preferredName}</span>}</span>
+            <span className="text-sm">{b.insurance ? <span className="text-slate-600">Insurance · {b.insurance.provider}</span> : b.memberCare ? <Badge>Free for members</Badge> : <span className="text-slate-600">{feeSummary(b, c.preferredName)}</span>}</span>
           </div>
         </div>
         <div className="flex flex-col gap-2 md:items-end">

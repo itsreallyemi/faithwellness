@@ -10,7 +10,6 @@ import { memberCareChurch } from "@/lib/prototype/member-care";
 import { membershipStatus, useIsMemberOf, useMembership } from "@/lib/prototype/store";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
-import { formatFee } from "@/lib/format";
 import { sampleSlots } from "@/lib/sample-slots";
 import { zoneCity, zonedDate } from "@/lib/time";
 import type { AvailabilityRule, Duration } from "@/lib/types";
@@ -46,14 +45,8 @@ export function BookingPanel(p: BookingPanelProps) {
   const membership = useMembership(p.churchSlug);
   const pending = membership?.status === "pending";
   const expired = membership ? membershipStatus(membership) === "expired" : false;
-  const feeLabel = (cents: number) =>
-    member && cents > 0 ? (
-      <>
-        <s className="text-slate-500">{formatFee(cents)}</s> <span className="font-semibold text-sage-700">Free</span>
-      </>
-    ) : (
-      formatFee(cents)
-    );
+  // Prices stay private; the counselor shares their fee with the client directly.
+  const feeLabel = member ? <span className="font-semibold text-sage-700">Free for members</span> : "Fee shared privately";
 
   // Slots depend on "now", so compute them only in the browser to avoid hydration mismatches.
   const [now, setNow] = useState<Date | null>(null);
@@ -72,7 +65,7 @@ export function BookingPanel(p: BookingPanelProps) {
 
   const day = days[dayIdx] ?? [];
   const slot = slotIdx !== null ? day[slotIdx] : undefined;
-  const fee = len === 30 ? p.fee30Cents : p.fee60Cents;
+
   const fmt = (d: Date, o: Intl.DateTimeFormatOptions) => d.toLocaleString("en-US", { timeZone: viewerTz, ...o });
 
   const pickLength = (n: Duration) => {
@@ -150,7 +143,7 @@ export function BookingPanel(p: BookingPanelProps) {
             )}
           >
             <span className="block text-base font-bold">{n} min</span>
-            <span className="mt-0.5 block text-sm text-slate-600">{feeLabel(n === 30 ? p.fee30Cents : p.fee60Cents)}</span>
+            <span className="mt-0.5 block text-sm text-slate-600">{n === 30 ? "Shorter check-in" : "Full session"}</span>
           </button>
         ))}
       </div>
@@ -218,7 +211,7 @@ export function BookingPanel(p: BookingPanelProps) {
             ? `${fmt(slot, { weekday: "short", month: "short", day: "numeric" })} · ${fmt(slot, { hour: "numeric", minute: "2-digit" })} · ${len} min`
             : "Pick a time"}
         </span>
-        <b className="text-base">{feeLabel(fee)}</b>
+        <b className="text-right text-sm">{feeLabel}</b>
       </div>
 
       <Button
@@ -239,7 +232,7 @@ export function BookingPanel(p: BookingPanelProps) {
       </Button>
       <p className="m-0 text-center text-xs leading-normal text-slate-600">
         {p.insurance.length > 0 && !member && "Insurance accepted. Add your plan on the next step. "}
-        {p.slidingScale && !member && `Sliding scale available — ask ${p.preferredName} in a message. `}
+        {!member && `${p.preferredName} will share the fee with you before your first session${p.slidingScale ? ", and offers a sliding scale" : ""}. `}
         Free cancellation up to 24 hours before.
       </p>
     </aside>

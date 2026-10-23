@@ -31,7 +31,25 @@ export type ProtoBooking = {
   memberCare?: boolean;
   /** Set when the client chose to use insurance. The counselor verifies it and bills the insurer directly. */
   insurance?: ProtoInsurance;
+  /** Set when the client offered a lower amount because the fee is a hardship. */
+  priceRequest?: ProtoPriceRequest;
 };
+
+export type ProtoPriceRequest = {
+  /** What the client said they can pay, in cents. 0 means they can't pay anything right now. */
+  offeredCents: number;
+  /** Optional, private note to the counselor. */
+  note: string;
+  status: "pending" | "accepted" | "declined";
+};
+
+/** The amount the client actually owes for a booking, once any price request is settled. */
+export function agreedFeeCents(b: ProtoBooking) {
+  if (b.memberCare) return 0;
+  if (b.priceRequest?.status === "accepted") return b.priceRequest.offeredCents;
+  return b.feeCents;
+}
+
 
 export type ProtoInsurance = {
   provider: string;
@@ -309,7 +327,7 @@ export const proto = {
     }
   },
 
-  book(b: Pick<ProtoBooking, "slug" | "startIso" | "duration" | "feeCents" | "note" | "rescheduledFrom" | "memberCare" | "insurance">) {
+  book(b: Pick<ProtoBooking, "slug" | "startIso" | "duration" | "feeCents" | "note" | "rescheduledFrom" | "memberCare" | "insurance" | "priceRequest">) {
     const booking: ProtoBooking = {
       ...b,
       id: id(),
@@ -321,6 +339,15 @@ export const proto = {
     set((s) => ({ ...s, bookings: [...s.bookings, booking] }));
     if (b.note.trim()) push(b.slug, { from: "client", body: b.note.trim() });
     push(b.slug, { from: "system", body: "Session confirmed", bookingId: booking.id });
+    if (b.priceRequest) {
+      const offer = b.priceRequest.offeredCents;
+      push(b.slug, {
+        from: "system",
+        body: offer === 0 ? "You asked whether this session could be free, because the fee is a hardship right now." : `You offered $${Math.round(offer / 100)} for this session instead of the usual fee.`,
+        bookingId: booking.id,
+      });
+      if (b.priceRequest.note.trim()) push(b.slug, { from: "client", body: b.priceRequest.note.trim() });
+    }
     setTimeout(
       () =>
         push(b.slug, {
@@ -333,6 +360,13 @@ export const proto = {
   },
 
   /** Stand-in for the counselor confirming (or not) the client's coverage. */
+  /** Stand-in for the counselor answering a price request. */
+  setPriceRequestStatus(bookingId: string, status: ProtoPriceRequest["status"]) {
+    set((s) => ({
+      ...s,
+      bookings: s.bookings.map((b) => (b.id === bookingId && b.priceRequest ? { ...b, priceRequest: { ...b.priceRequest, status } } : b)),
+    }));
+  },
   setInsuranceStatus(bookingId: string, status: ProtoInsurance["status"]) {
     set((s) => ({
       ...s,

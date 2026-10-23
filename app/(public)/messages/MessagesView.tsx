@@ -11,9 +11,9 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
-import { formatFee } from "@/lib/format";
 import { formatDay, formatSession, formatTime } from "@/lib/prototype/format";
 import type { CounselorLite } from "@/lib/prototype/lite";
+import { feeSummary } from "../sessions/[id]/SessionView";
 import { proto, type ProtoBooking, type ProtoMessage, type ProtoState } from "@/lib/prototype/store";
 import { zonedDate } from "@/lib/time";
 
@@ -341,7 +341,7 @@ function Context({ counselor: c, state }: { counselor: CounselorLite; state: Pro
               {formatDay(new Date(upcoming.startIso), tz)} · {formatTime(new Date(upcoming.startIso), tz)}
             </Link>
             <span className="text-[13px] text-slate-600">
-              {upcoming.duration} min · Google Meet · {upcoming.memberCare ? "Free for members" : formatFee(upcoming.feeCents)}
+              {upcoming.duration} min · Google Meet · {upcoming.insurance ? `Insurance · ${upcoming.insurance.provider}` : upcoming.memberCare ? "Free for members" : feeSummary(upcoming, c.preferredName)}
             </span>
             <Button onClick={joinMeet} className="mt-1 min-h-12">
               Join when it starts

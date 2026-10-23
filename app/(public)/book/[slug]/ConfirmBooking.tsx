@@ -59,6 +59,23 @@ function Form({
   const usingInsurance = canUseInsurance && payWith === "insurance";
   const provider = plan === OTHER ? otherPlan.trim() : plan;
 
+  // Price: shown only here, privately, when booking. A client can offer what they can pay.
+  const showPrice = !member && !usingInsurance && usualFee > 0;
+  const [hardship, setHardship] = useState(false);
+  const [offer, setOffer] = useState("");
+  const [cantPay, setCantPay] = useState(false);
+  const [offerNote, setOfferNote] = useState("");
+  const [offerError, setOfferError] = useState("");
+  const offering = showPrice && hardship;
+  const offerDollars = Number(offer.replace(/[$,\s]/g, ""));
+  const offerValid = cantPay || (offer.trim() !== "" && Number.isFinite(offerDollars) && offerDollars >= 0 && offerDollars * 100 < usualFee);
+  const offerProblem = () => {
+    if (!offering || offerValid) return "";
+    if (offer.trim() === "") return `Enter what you can pay, or tick “I can’t pay anything right now.”`;
+    if (!Number.isFinite(offerDollars) || offerDollars < 0) return "Enter an amount in dollars, like 40.";
+    return `That’s the full fee. Choose “Pay the full fee” instead, or enter a lower amount.`;
+  };
+
   const insuranceProblems = () => {
     const e: Record<string, string> = {};
     if (!plan) e.plan = "Choose your insurance plan.";
@@ -76,6 +93,9 @@ function Form({
     const problems = usingInsurance ? insuranceProblems() : {};
     setInsErrors(problems);
     if (Object.keys(problems).length) return;
+    const op = offerProblem();
+    setOfferError(op);
+    if (op) return document.getElementById("offer-amount")?.focus();
     if (!agreed) return setShowError(true);
     setPending(true);
     // Stand-in for the Calendly booking + webhook round trip.
@@ -95,6 +115,9 @@ function Form({
               groupNumber: group.trim(),
               status: "pending",
             }
+          : undefined,
+        priceRequest: offering
+          ? { offeredCents: cantPay ? 0 : Math.round(offerDollars * 100), note: offerNote, status: "pending" }
           : undefined,
       });
       router.push(`/sessions/${id}?new=1`);
@@ -156,22 +179,27 @@ function Form({
             <Video size={16} strokeWidth={1.8} aria-hidden="true" /> Google Meet
           </dd>
           <dt className="text-slate-600">Fee</dt>
-          <dd className="m-0 text-right font-bold">
-            {member && usualFee > 0 ? (
-              <>
-                <s className="font-normal text-slate-500">{formatFee(usualFee)}</s> <span className="text-sage-700">Free</span>
-              </>
+          <dd className="m-0 text-right font-semibold">
+            {member ? (
+              <span className="text-sage-700">Free for members</span>
             ) : usingInsurance ? (
               `Billed to ${provider || "insurance"}`
+            ) : usualFee === 0 ? (
+              "Free"
+            ) : offering && offerValid ? (
+              <>
+                <s className="font-normal text-slate-500">{formatFee(usualFee)}</s>{" "}
+                {cantPay ? "Asking for free" : `You offer ${formatFee(Math.round(offerDollars * 100))}`}
+              </>
             ) : (
-              formatFee(fee)
+              formatFee(usualFee)
             )}
           </dd>
         </dl>
         {usingInsurance ? (
           <p className="m-0 text-[13px] leading-normal text-slate-600">
             {c.preferredName} checks your coverage before the session and bills your insurer directly. A copay may apply.
-            If it isn&rsquo;t covered, you can pay {formatFee(usualFee)} or cancel at no cost.
+            If it isn&rsquo;t covered, you can pay {c.preferredName} directly or cancel at no cost.
           </p>
         ) : member ? (
           <div className="flex flex-col gap-1.5 rounded-md bg-sage-100 px-4 py-3">
@@ -182,7 +210,8 @@ function Form({
           </div>
         ) : (
           <p className="m-0 text-[13px] leading-normal text-slate-600">
-            No payment is taken on FaithWellness. Arrange the fee directly with {c.preferredName}.
+            Your session supports {c.preferredName}&rsquo;s counseling ministry. You pay {c.preferredName} directly;
+            FaithWellness doesn&rsquo;t take payment.
           </p>
         )}
       </Card>
@@ -196,7 +225,7 @@ function Form({
               <div className="grid gap-3 sm:grid-cols-2">
                 {(
                   [
-                    ["self", `Pay ${c.preferredName} directly`, `${formatFee(usualFee)}, arranged with ${c.preferredName}`],
+                    ["self", `Pay ${c.preferredName} directly`, `Fee agreed privately with ${c.preferredName}`],
                     ["insurance", "Use insurance", `${c.preferredName} bills your plan`],
                   ] as const
                 ).map(([value, label, hint]) => (
@@ -326,6 +355,116 @@ function Form({
                 </div>
               )}
             </fieldset>
+          )}
+
+          {showPrice && (
+            <section aria-labelledby="cost-title" className="flex flex-col gap-3 rounded-lg border border-border-warm bg-cream p-4 md:p-5">
+              <div className="flex items-baseline justify-between gap-3">
+                <h2 id="cost-title" className="m-0 text-[15px] font-semibold">
+                  Session fee
+                </h2>
+                <b className={cn("font-display text-[26px] leading-8 font-medium!", offering && "text-slate-500 line-through")}>
+                  {formatFee(usualFee)}
+                </b>
+              </div>
+              <p className="m-0 text-[15px] leading-normal">
+                Your session supports {c.preferredName}&rsquo;s counseling ministry.
+                {c.slidingScale && ` ${c.preferredName} offers a sliding scale.`}
+              </p>
+
+              {!offering ? (
+                <Button
+                  variant="link"
+                  className="self-start px-0!"
+                  aria-expanded={false}
+                  aria-controls="offer-panel"
+                  onClick={() => {
+                    setHardship(true);
+                    setTimeout(() => document.getElementById("offer-amount")?.focus(), 0);
+                  }}
+                >
+                  {c.slidingScale ? "Ask for a sliding-scale price" : "This is more than I can pay"}
+                </Button>
+              ) : (
+                <div id="offer-panel" className="flex flex-col gap-4 rounded-md border border-border bg-white p-4">
+                  <p className="m-0 text-[15px] leading-normal">
+                    That&rsquo;s okay. Tell {c.preferredName} what you can offer. {c.preferredName} will reply in your messages
+                    before the session, and you can cancel at no cost if it doesn&rsquo;t work out.
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    <label htmlFor="offer-amount" className="font-semibold">
+                      What can you pay for this session?
+                    </label>
+                    <div className="relative max-w-[200px]">
+                      <span className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-slate-600" aria-hidden="true">
+                        $
+                      </span>
+                      <input
+                        id="offer-amount"
+                        inputMode="decimal"
+                        value={cantPay ? "" : offer}
+                        disabled={cantPay}
+                        onChange={(e) => {
+                          setOffer(e.target.value);
+                          setOfferError("");
+                        }}
+                        aria-invalid={Boolean(offerError)}
+                        aria-describedby={offerError ? "offer-error" : undefined}
+                        placeholder={String(Math.round(usualFee / 200))}
+                        className="min-h-12 w-full rounded-md border border-border bg-cream pr-4 pl-8 text-base disabled:opacity-50 aria-invalid:border-peach-700"
+                      />
+                    </div>
+                    <label className="flex min-h-11 cursor-pointer items-center gap-2.5 text-[15px]">
+                      <input
+                        type="checkbox"
+                        checked={cantPay}
+                        onChange={(e) => {
+                          setCantPay(e.target.checked);
+                          setOfferError("");
+                        }}
+                        className="size-[18px] flex-none accent-peach-700"
+                      />
+                      I can&rsquo;t pay anything right now
+                    </label>
+                    {offerError && (
+                      <p id="offer-error" className="m-0 text-sm text-peach-700">
+                        {offerError}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <label htmlFor="offer-note" className="font-semibold">
+                      Anything you&rsquo;d like {c.preferredName} to know? <span className="font-normal text-slate-600">(optional)</span>
+                    </label>
+                    <textarea
+                      id="offer-note"
+                      rows={3}
+                      value={offerNote}
+                      onChange={(e) => setOfferNote(e.target.value)}
+                      placeholder="You don’t have to explain. A few words can help, like “I lost my job last month.”"
+                      className="resize-y rounded-md border border-border bg-cream px-4 py-3 text-base leading-[1.6]"
+                    />
+                    <span className="flex items-center gap-1.5 text-[13px] text-slate-600">
+                      <Lock size={14} strokeWidth={1.8} aria-hidden="true" />
+                      Only {c.preferredName} sees this.
+                    </span>
+                  </div>
+                  <Button
+                    variant="link"
+                    className="self-start px-0! text-sm"
+                    onClick={() => {
+                      setHardship(false);
+                      setOffer("");
+                      setCantPay(false);
+                      setOfferNote("");
+                      setOfferError("");
+                    }}
+                  >
+                    Pay the full fee instead
+                  </Button>
+                </div>
+              )}
+            </section>
           )}
 
           <div className="flex flex-col gap-2">

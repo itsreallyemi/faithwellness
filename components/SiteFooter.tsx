@@ -37,7 +37,7 @@ export function SiteFooter() {
             <span className="font-display text-[19px] font-semibold!">FaithWellness</span>
           </span>
           <p className="m-0 text-sm leading-normal text-slate-600">
-            Pastoral and Christian counselors from churches you know.
+            Counselors and life coaches with faith-based accreditation.
           </p>
         </div>
         <nav aria-label="Footer" className="grid grid-cols-2 gap-8 sm:grid-cols-3 md:gap-14">

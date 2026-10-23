@@ -8,7 +8,6 @@ import { FilterChip } from "@/components/ui/FilterChip";
 import { cn } from "@/lib/cn";
 import {
   activeFilterCount,
-  FEE_SLIDER_MAX,
   filtersToQuery,
   type DirectoryFilters,
   type SortKey,
@@ -37,7 +36,6 @@ const EMPTY: Omit<DirectoryFilters, "q" | "sort"> = {
   focus: [],
   denom: [],
   church: [],
-  max: null,
   sliding: false,
   members: false,
   length: 60,
@@ -214,7 +212,7 @@ export function FilterPanel({ inSheet = false }: { inSheet?: boolean }) {
 
       <ChurchFilter id={`${id}-church`} />
 
-      <FeeFilter />
+      <CostFilter />
 
       <Group label="Session length">
         <div role="radiogroup" aria-label="Session length" className="grid grid-cols-2 rounded-pill bg-cream-200 p-1">
@@ -302,40 +300,11 @@ function ChurchFilter({ id }: { id: string }) {
   );
 }
 
-function FeeFilter() {
+/** Prices aren't public, so cost filters are about options rather than amounts. */
+function CostFilter() {
   const { filters: f, update } = useDirectory();
-  const [value, setValue] = useState(f.max ?? FEE_SLIDER_MAX);
-  useEffect(() => setValue(f.max ?? FEE_SLIDER_MAX), [f.max]);
-
-  // Commit to the URL shortly after the thumb stops moving.
-  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const onChange = (v: number) => {
-    setValue(v);
-    clearTimeout(timer.current);
-    timer.current = setTimeout(() => update({ max: v >= FEE_SLIDER_MAX ? null : v }), 300);
-  };
-  const label = value >= FEE_SLIDER_MAX ? "Any fee" : value === 0 ? "Free only" : `Up to $${value}`;
-  const id = useId();
-
   return (
-    <Group label={`Session fee (${f.length} min)`} htmlFor={id}>
-      <input
-        id={id}
-        type="range"
-        min={0}
-        max={FEE_SLIDER_MAX}
-        step={10}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-        aria-valuetext={label}
-        className="fee-range h-6 w-full cursor-pointer"
-        style={{ "--fill": `${(value / FEE_SLIDER_MAX) * 100}%` } as React.CSSProperties}
-      />
-      <div className="flex justify-between text-[13px] text-slate-600">
-        <span>Free</span>
-        <span className="font-semibold text-slate-900">{label}</span>
-        <span>${FEE_SLIDER_MAX}+</span>
-      </div>
+    <Group label="Cost">
       <div className="flex flex-col">
         <Check checked={f.sliding} onChange={(v) => update({ sliding: v })}>
           Sliding scale offered
@@ -402,7 +371,7 @@ export function MobileFilterBar() {
 
 const sortLabels: Record<SortKey, string> = {
   soonest: "Soonest available",
-  fee: "Fee: low to high",
+
   experience: "Most experienced",
 };
 
@@ -413,7 +382,7 @@ export function ResultsHeader() {
     ...f.focus.map((s) => facets.focusAreas.find((a) => a.slug === s)?.label ?? s),
     ...f.denom,
     ...f.church.map((s) => facets.churches.find((c) => c.slug === s)?.name ?? s),
-    f.max !== null && (f.max === 0 ? "free" : `up to $${f.max}`),
+
     f.sliding && "sliding scale",
     f.members && "free for members",
     f.length === 30 && "30 min",

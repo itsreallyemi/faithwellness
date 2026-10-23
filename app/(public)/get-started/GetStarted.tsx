@@ -441,17 +441,13 @@ function Results({ counselors, focusLabels, intake }: Props & { intake: Intake }
       {top.length > 0 ? (
         <ul className="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(min(100%,340px),1fr))] gap-6 p-0">
           {top.map((m, i) => (
-            <li key={m.counselor.slug} className="flex flex-col gap-3">
-              <div className="flex flex-wrap items-center gap-2">
-                {i === 0 && <span className="rounded-pill bg-peach-200 px-3 py-1 text-[13px] font-semibold text-peach-800">Best fit</span>}
-                {m.reasons.map((r) => (
-                  <span key={r} className="flex items-center gap-1 rounded-pill bg-sage-100 px-3 py-1 text-[13px] font-semibold text-sage-700">
-                    <Check size={13} strokeWidth={2.4} aria-hidden="true" />
-                    {r}
-                  </span>
-                ))}
-              </div>
-              <CounselorCard counselor={m.counselor} nextOpening={null} focusLabels={focusLabels} />
+            <li key={m.counselor.slug} className="flex flex-col">
+              <CounselorCard
+                counselor={m.counselor}
+                nextOpening={null}
+                focusLabels={focusLabels}
+                fit={{ reasons: m.reasons, best: i === 0 }}
+              />
             </li>
           ))}
         </ul>

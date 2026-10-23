@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { CalendarPlus, CircleCheck, Mail, MessageCircle, ShieldCheck, Video } from "lucide-react";
+import { CalendarPlus, CircleCheck, HandHeart, Mail, MessageCircle, ShieldCheck, Video } from "lucide-react";
 import { joinMeet, rescheduleHref } from "@/components/prototype/BookingCard";
 import { RequireSignIn } from "@/components/prototype/RequireSignIn";
 import { useViewerTimeZone } from "@/components/LocalTime";
@@ -14,7 +14,7 @@ import { formatFee } from "@/lib/format";
 import { downloadIcs } from "@/lib/prototype/ics";
 import { counselorLocal, formatSession } from "@/lib/prototype/format";
 import type { CounselorLite } from "@/lib/prototype/lite";
-import { proto, type ProtoBooking } from "@/lib/prototype/store";
+import { agreedFeeCents, proto, type ProtoBooking } from "@/lib/prototype/store";
 import { zoneCity } from "@/lib/time";
 
 export function SessionView({ id, counselors }: { id: string; counselors: CounselorLite[] }) {
@@ -98,11 +98,12 @@ function Detail({ booking: b, counselor: c, email }: { booking: ProtoBooking; co
                 ? `Insurance · ${b.insurance.provider}`
                 : b.memberCare
                   ? `Free, ${c.churchName} member care`
-                  : `${formatFee(b.feeCents)}, arranged with ${c.preferredName}`}
+                  : feeSummary(b, c.preferredName)}
             </dd>
           </dl>
 
           {b.insurance && !canceled && <InsuranceStatus booking={b} counselor={c} />}
+          {b.priceRequest && !canceled && <PriceRequestStatus booking={b} counselor={c} />}
 
           {!canceled && (
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
@@ -246,6 +247,77 @@ function InsuranceStatus({ booking: b, counselor: c }: { booking: ProtoBooking; 
           </Button>
           <Button variant="secondary" className="min-h-10! text-sm" onClick={() => proto.setInsuranceStatus(b.id, "not-covered")}>
             Not covered
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** The fee line for a booking the client has made. Only the client and counselor ever see it. */
+export function feeSummary(b: ProtoBooking, name: string) {
+  const pr = b.priceRequest;
+  if (b.feeCents === 0) return "Free";
+  if (!pr) return `${formatFee(b.feeCents)}, paid to ${name} directly`;
+  const offer = pr.offeredCents === 0 ? "free" : formatFee(pr.offeredCents);
+  if (pr.status === "accepted") return `${formatFee(agreedFeeCents(b))}, agreed with ${name}`;
+  if (pr.status === "declined") return `${formatFee(b.feeCents)}, ${name}’s usual fee`;
+  return `${formatFee(b.feeCents)} usual · you offered ${offer}`;
+}
+
+const offerCopy = {
+  pending: {
+    title: "Price request: waiting for a reply",
+    body: (name: string) =>
+      `${name} will reply in your messages before the session. Your time is held either way, and you can cancel at no cost if it doesn’t work out.`,
+  },
+  accepted: {
+    title: "Price request: accepted",
+    body: (name: string) => `${name} agreed to your offer. Pay ${name} the agreed amount directly.`,
+  },
+  declined: {
+    title: "Price request: not possible this time",
+    body: (name: string) =>
+      `${name} couldn’t lower the fee for this session. You can keep it at the usual fee, message ${name} about other options, or cancel at no cost.`,
+  },
+} as const;
+
+function PriceRequestStatus({ booking: b, counselor: c }: { booking: ProtoBooking; counselor: CounselorLite }) {
+  const pr = b.priceRequest!;
+  const copy = offerCopy[pr.status];
+  const tone = {
+    pending: "border-peach-200 bg-peach-50",
+    accepted: "border-sage-700/30 bg-sage-100",
+    declined: "border-border bg-cream",
+  }[pr.status];
+
+  return (
+    <div className={`flex flex-col gap-3 rounded-md border p-4 ${tone}`}>
+      <b className="flex items-center gap-2">
+        <HandHeart size={18} strokeWidth={1.8} aria-hidden="true" />
+        {copy.title}
+      </b>
+      <p className="m-0 text-[15px] leading-normal">{copy.body(c.preferredName)}</p>
+      <dl className="m-0 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm text-slate-600">
+        <dt>Usual fee</dt>
+        <dd className="m-0">{formatFee(b.feeCents)}</dd>
+        <dt>Your offer</dt>
+        <dd className="m-0">{pr.offeredCents === 0 ? "Asked for free" : formatFee(pr.offeredCents)}</dd>
+      </dl>
+      {pr.status !== "accepted" && (
+        <Button variant="link" href={`/messages/${c.slug}`} className="self-start px-0! text-sm">
+          Message {c.preferredName}
+        </Button>
+      )}
+      {/* PROTOTYPE ONLY: play the counselor's side. */}
+      <div className="flex flex-col gap-2 rounded-md border border-dashed border-peach-400 bg-white/70 px-3 py-2.5 text-sm text-peach-800">
+        <span>Prototype: act as {c.preferredName} answering the request.</span>
+        <div className="flex flex-wrap gap-2">
+          <Button className="min-h-10! text-sm" onClick={() => proto.setPriceRequestStatus(b.id, "accepted")}>
+            Accept offer
+          </Button>
+          <Button variant="secondary" className="min-h-10! text-sm" onClick={() => proto.setPriceRequestStatus(b.id, "declined")}>
+            Can&rsquo;t lower it
           </Button>
         </div>
       </div>

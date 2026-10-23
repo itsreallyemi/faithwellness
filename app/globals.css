@@ -22,6 +22,17 @@
   a:hover {
     color: var(--color-peach-800);
   }
+  /* One chevron for every dropdown, inset from the rounded edge instead of the browser's default. */
+  select {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234A5568' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    background-size: 16px 16px;
+    padding-right: 44px !important;
+    cursor: pointer;
+  }
   :focus-visible {
     outline: 2px solid var(--color-peach-700);
     outline-offset: 2px;
@@ -64,6 +75,34 @@
   border-radius: 50%;
   background: #fff;
   border: 2px solid var(--color-peach-700);
+}
+
+/* Counselor cards lean toward the mouse and lift (components/Tilt.tsx). */
+.tilt {
+  transform: perspective(1000px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateY(var(--lift, 0px));
+  transition:
+    transform 450ms cubic-bezier(0.2, 0.7, 0.2, 1),
+    box-shadow 450ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.tilt[data-tilting="true"] {
+  --lift: -4px;
+  box-shadow: var(--shadow-raised);
+  transition-duration: 120ms, 450ms;
+}
+.tilt:focus-within {
+  --lift: -4px;
+  box-shadow: var(--shadow-raised);
+}
+.tilt [data-tilt-depth] {
+  transform: translate(calc(var(--mx, 0) * -10px), calc(var(--my, 0) * -10px));
+  transition: transform 450ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .tilt,
+  .tilt [data-tilt-depth] {
+    transform: none;
+    transition: none;
+  }
 }
 
 /* Overline label: Jakarta 700 · 12px · +8% tracking · uppercase */

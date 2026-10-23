@@ -369,7 +369,9 @@ export default async function ForCounselorsPage() {
               <b>You set your fees</b>
               <span className="text-[15px] leading-[1.55] text-slate-600">
                 Offer 30 and 60 minute sessions at your own rates, free sessions for members, or a sliding scale.
-                FaithWellness doesn&rsquo;t take payments yet, so fees are arranged directly with your clients.
+                Your fees are never shown publicly. Clients see them only when they book, framed as supporting your
+                counseling ministry. Anyone for whom the fee is a hardship can offer what they can pay, and you choose
+                whether to accept.
               </span>
             </div>
           </div>
