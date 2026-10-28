@@ -7,7 +7,6 @@
 3. Have these accounts ready (all have free tiers to start):
    - **GitHub** (code), **Vercel** (hosting), **Supabase** (database + login)
    - **Google Cloud Console** — create an OAuth client with the Google Calendar API enabled
-   - **Calendly developer account** — register an OAuth app. Note: Calendly webhooks need counselors on a paid Calendly plan (Standard or higher).
    - **Resend** (email)
 
 Claude Code reads `CLAUDE.md` automatically, so it already knows the stack, design rules and data model.
@@ -22,8 +21,8 @@ Claude Code reads `CLAUDE.md` automatically, so it already knows the stack, desi
 2. **Public directory + profile** — Supabase schema + seed the six sample counselors; `/counselors` with working filters (focus, denomination, church, fee, session length, sort); `/counselors/[slug]` profile page with the booking panel (static slots for now). Desktop and mobile layouts.
 3. **Auth + roles** — Supabase Auth (magic link + Google), client vs counselor roles, RLS policies, protected `/portal`.
 4. **Counselor portal** — `/portal/settings`: profile & fees, weekly hours, session types; upcoming sessions list.
-5. **Integrations** — Google OAuth + Calendly OAuth connect/disconnect cards, token storage + refresh, event-type sync, webhook subscription.
-6. **Booking engine** — `lib/availability.ts` with unit tests for the 15-min buffer; `/api/availability`; Calendly inline embed; `/api/webhooks/calendly` (signature check, idempotency, conflict guard); Google event + Meet link + rest block; cancel/reschedule handling.
+5. **Integrations** — Google Calendar connect/disconnect card, token storage + refresh, choosing which calendars to check and write to.
+6. **Booking engine** — `lib/availability.ts` with unit tests for the 15-min buffer; `/api/availability`; booking server action (conflict re-check in one transaction); Google event + Meet link + rest block; cancel/reschedule handling.
 7. **Messaging** — threads, realtime messages (Supabase Realtime), booking confirmation cards in the thread, email notifications via Resend.
 8. **Polish + launch** — accessibility pass, empty/error states, crisis notice everywhere, SEO for profiles, deploy to Vercel with production env vars.
 

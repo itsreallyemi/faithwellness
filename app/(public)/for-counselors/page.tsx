@@ -74,7 +74,7 @@ const reasons = [
   {
     icon: CalendarCheck,
     title: "Booking is handled",
-    body: "Connect Google Calendar and Calendly once. Clients only see times you’re truly free.",
+    body: "Connect Google Calendar once. Clients only see times you’re truly free.",
   },
   {
     icon: Coffee,
@@ -92,7 +92,7 @@ const steps = [
   { title: "Apply", body: "Tell us who you are and which church or denomination accredits you." },
   { title: "We confirm your accreditation", body: "We check with your church or denomination, and verify any state license." },
   { title: "Build your profile", body: "Your story, how you bring faith into care, focus areas and fees." },
-  { title: "Connect your calendars", body: "Google Calendar for conflicts and Meet links, Calendly for booking." },
+  { title: "Connect Google Calendar", body: "So clients can’t book over your other commitments, and each session gets a Meet link." },
   { title: "Set your hours", body: "Choose your weekly hours and whether you offer 30 or 60 minute sessions." },
   { title: "Go live", body: "Your profile appears in the directory and clients can book." },
 ];
@@ -116,10 +116,6 @@ const faqs = [
   {
     q: "What does it cost to join?",
     a: "To be decided before launch. FaithWellness doesn’t take session payments yet. You arrange fees directly with clients.",
-  },
-  {
-    q: "Do I need a paid Calendly plan?",
-    a: "Yes. Booking confirmations rely on Calendly webhooks, which need the Standard plan or higher.",
   },
   {
     q: "I’m a licensed clinician. Can clients use insurance?",
@@ -157,6 +153,9 @@ export default async function ForCounselorsPage() {
             See accreditation requirements
           </Button>
         </div>
+        <p className="m-0 text-[15px] text-slate-600">
+          Already on FaithWellness? <Link href="/portal" className="font-semibold">Sign in to your portal</Link>
+        </p>
       </section>
 
       {/* Counseling as ministry */}
@@ -306,7 +305,6 @@ export default async function ForCounselorsPage() {
               ["Accreditation", "From a church or denomination listed on FaithWellness. We confirm it with them."],
               ["A state license, if you’re a clinician", "LPC, LMFT, LCSW, PsyD and similar. Shown on your profile next to your accreditation."],
               ["Google Calendar", "So clients can’t book over your other commitments, and so we can add Meet links."],
-              ["Calendly, Standard plan or higher", "Clients book through your Calendly event types. Booking updates need a paid plan."],
               ["About 30 minutes", "To write your profile, set fees and choose your weekly hours."],
             ].map(([title, body]) => (
               <li key={title} className="flex gap-3.5">

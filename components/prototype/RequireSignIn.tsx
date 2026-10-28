@@ -3,6 +3,7 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import { proto, useProto, type ProtoState } from "@/lib/prototype/store";
+import { useAuthState } from "@/lib/supabase/client";
 
 /** Renders children with the signed-in state, or sends the visitor to /sign-in and back. */
 export function RequireSignIn({ children }: { children: (s: ProtoState & { user: NonNullable<ProtoState["user"]> }) => React.ReactNode }) {
@@ -10,7 +11,9 @@ export function RequireSignIn({ children }: { children: (s: ProtoState & { user:
   const router = useRouter();
   const pathname = usePathname();
   const search = useSearchParams().toString();
-  const signedOut = s !== null && !s.user;
+  // With real sign-in, wait until the session has loaded before deciding they are signed out.
+  const auth = useAuthState();
+  const signedOut = s !== null && !s.user && auth !== "loading";
 
   useEffect(() => {
     if (!signedOut) return;

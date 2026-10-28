@@ -205,7 +205,13 @@ function ChurchControls({ membership: m }: { membership: ProtoMembership }) {
   const small = "min-h-10! text-sm";
   return (
     <div className="flex flex-col gap-3 rounded-md border border-dashed border-peach-400 bg-peach-50 px-4 py-3 text-sm text-peach-800">
-      <span>Prototype: act as {m.churchName} in its dashboard.</span>
+      <span>
+        Prototype: act as {m.churchName} here, or in{" "}
+        <Link href={`/church/${m.churchSlug}`} className="font-semibold">
+          its admin page
+        </Link>
+        .
+      </span>
       <div className="flex flex-wrap gap-2">
         {status === "pending" && (
           <>

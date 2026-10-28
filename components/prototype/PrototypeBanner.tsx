@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { proto, useProto } from "@/lib/prototype/store";
+import { authEnabled } from "@/lib/supabase/client";
 
 export function PrototypeBanner() {
   const router = useRouter();
@@ -12,7 +13,10 @@ export function PrototypeBanner() {
       <div className="bg-slate-900 text-[13px] leading-5 text-white">
         <div className="mx-auto flex max-w-[1280px] flex-wrap items-center gap-x-3 gap-y-1 px-4 py-1.5 md:px-8">
           <span>
-            <b>Prototype.</b> Sample counselors and fake data. Nothing is booked, sent or stored outside this browser.
+            <b>Prototype.</b>{" "}
+            {authEnabled
+              ? "Sign-in and the counselor directory are real. Bookings, messages and memberships are still test data in this browser."
+              : "Sample counselors and fake data. Nothing is booked, sent or stored outside this browser."}
           </span>
           <button
             type="button"

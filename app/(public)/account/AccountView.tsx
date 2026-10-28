@@ -14,6 +14,7 @@ import { Card } from "@/components/ui/Card";
 import { intakeRows } from "@/lib/prototype/intake";
 import { formatSession } from "@/lib/prototype/format";
 import { isUpForRenewal, membershipStatus, proto, type ProtoState, type ProtoUser } from "@/lib/prototype/store";
+import { authEnabled, supabaseBrowser } from "@/lib/supabase/client";
 import { zoneCity } from "@/lib/time";
 
 type SignedIn = ProtoState & { user: ProtoUser };
@@ -79,7 +80,7 @@ function Details({ user }: { user: ProtoUser }) {
   const now = new Date().toLocaleTimeString("en-US", { timeZone: effective, hour: "numeric", minute: "2-digit" });
   const dirty = name !== user.name || email !== user.email || zone !== (user.timeZone ?? DEVICE);
 
-  const save = (e: React.FormEvent) => {
+  const save = async (e: React.FormEvent) => {
     e.preventDefault();
     const next: Record<string, string> = {};
     if (!name.trim()) next.name = "Add the name you’d like to go by.";
@@ -87,11 +88,35 @@ function Details({ user }: { user: ProtoUser }) {
     setErrors(next);
     if (Object.keys(next).length) return;
     const emailChanged = email.trim() !== user.email;
-    proto.updateUser({ name: name.trim(), email: email.trim(), timeZone: zone === DEVICE ? undefined : zone });
+    const timeZone = zone === DEVICE ? undefined : zone;
+
+    if (!authEnabled) {
+      proto.updateUser({ name: name.trim(), email: email.trim(), timeZone });
+      proto.toast(
+        emailChanged
+          ? `Saved. In the real app we’d send a link to ${email.trim()} to confirm it first.`
+          : "Your details are saved.",
+      );
+      return;
+    }
+
+    const sb = supabaseBrowser();
+    const { data } = await sb.auth.getUser();
+    if (!data.user) return proto.toast("You’ve been signed out. Sign in again to save.");
+    const { error } = await sb.from("profiles").update({ full_name: name.trim(), time_zone: effective }).eq("id", data.user.id);
+    if (error) return proto.toast("We couldn’t save your details. Please try again.");
+    // The email only changes once the new address is confirmed from the link Supabase sends.
+    proto.updateUser({ name: name.trim(), timeZone });
+    if (!emailChanged) return proto.toast("Your details are saved.");
+    const change = await sb.auth.updateUser(
+      { email: email.trim() },
+      { emailRedirectTo: `${location.origin}/auth/callback?next=/account` },
+    );
+    setEmail(user.email);
     proto.toast(
-      emailChanged
-        ? `Saved. In the real app we’d send a link to ${email.trim()} to confirm it first.`
-        : "Your details are saved.",
+      change.error
+        ? "Your name is saved, but we couldn’t start the email change. Please try again."
+        : `Saved. To finish changing your email, open the link we sent to ${email.trim()}.`,
     );
   };
 
@@ -361,7 +386,12 @@ function DeleteAccount({ s }: { s: SignedIn }) {
             <Button
               variant="secondary"
               disabled={typed.trim().toUpperCase() !== "DELETE"}
-              onClick={() => {
+              onClick={async () => {
+                if (authEnabled) {
+                  const { error } = await supabaseBrowser().rpc("delete_my_account");
+                  if (error) return proto.toast("We couldn’t delete your account. Please try again.");
+                  await supabaseBrowser().auth.signOut();
+                }
                 proto.deleteAccount();
                 router.push("/counselors");
                 proto.toast("Your account has been deleted.");

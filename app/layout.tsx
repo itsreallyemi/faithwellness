@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Fraunces, Plus_Jakarta_Sans } from "next/font/google";
+import { AuthSync } from "@/components/AuthSync";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -24,7 +25,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${fraunces.variable} ${jakarta.variable}`}>
-      <body>{children}</body>
+      <body>
+        <AuthSync />
+        {children}
+      </body>
     </html>
   );
 }

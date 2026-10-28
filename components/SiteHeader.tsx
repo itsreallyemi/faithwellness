@@ -4,12 +4,13 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Menu, X } from "lucide-react";
+import { signOutEverywhere } from "@/components/AuthSync";
 import { MemberBadge } from "@/components/prototype/MemberBadge";
 import { Button } from "@/components/ui/Button";
 import { initialsFor } from "@/components/ui/Avatar";
 import { Logo } from "@/components/ui/Logo";
 import { cn } from "@/lib/cn";
-import { membershipStatus, proto, useProto } from "@/lib/prototype/store";
+import { membershipStatus, useProto } from "@/lib/prototype/store";
 
 type NavLink = { href: string; label: string; match: (p: string) => boolean };
 
@@ -49,8 +50,8 @@ export function SiteHeader() {
   }, [accountOpen]);
 
   const links = user ? clientLinks : publicLinks;
-  const signOut = () => {
-    proto.signOut();
+  const signOut = async () => {
+    await signOutEverywhere();
     router.push("/counselors");
   };
 

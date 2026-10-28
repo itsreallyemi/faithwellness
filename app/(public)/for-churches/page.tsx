@@ -249,10 +249,15 @@ export default async function ForChurchesPage() {
               ))}
             </ol>
             <div className="flex flex-col gap-2 rounded-md border border-dashed border-peach-400 bg-peach-50 px-4 py-3 text-sm text-peach-800">
-              <span>Prototype: try it as a member of Grace Fellowship.</span>
-              <Link href="/join/grace-fellowship?code=GRACE2026" className="inline-flex min-h-11 items-center self-start font-semibold">
-                Open a sample member link
-              </Link>
+              <span>Prototype: try it as a member of Grace Fellowship, or as its admin.</span>
+              <div className="flex flex-wrap gap-x-5">
+                <Link href="/join/grace-fellowship?code=GRACE2026" className="inline-flex min-h-11 items-center font-semibold">
+                  Open a sample member link
+                </Link>
+                <Link href="/church/grace-fellowship" className="inline-flex min-h-11 items-center font-semibold">
+                  Open the church admin page
+                </Link>
+              </div>
             </div>
             <div className="flex gap-3 rounded-lg bg-white p-5">
               <EyeOff size={22} strokeWidth={1.8} className="mt-0.5 flex-none text-sage-700" aria-hidden="true" />

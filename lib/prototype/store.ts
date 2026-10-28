@@ -6,6 +6,7 @@
 import { useSyncExternalStore } from "react";
 import type { Duration } from "@/lib/types";
 import type { Intake } from "@/lib/prototype/intake";
+import type { PortalSettings } from "@/lib/prototype/portal";
 
 const KEY = "fw-prototype-v1";
 
@@ -80,15 +81,26 @@ const DAY = 86_400_000;
 const YEAR = 365 * DAY;
 
 /** The status a member actually has right now, including lapsed approvals. */
-export function membershipStatus(m: ProtoMembership, now = Date.now()): ProtoMembership["status"] | "expired" {
+export function membershipStatus(m: Pick<ProtoMembership, "status" | "expiresIso">, now = Date.now()): ProtoMembership["status"] | "expired" {
   if (m.status === "verified" && m.expiresIso && new Date(m.expiresIso).getTime() <= now) return "expired";
   return m.status;
 }
 
 /** True when an approved membership expires within the renewal window. */
-export function isUpForRenewal(m: ProtoMembership, now = Date.now()) {
+export function isUpForRenewal(m: Pick<ProtoMembership, "status" | "expiresIso">, now = Date.now()) {
   return membershipStatus(m, now) === "verified" && Boolean(m.expiresIso) && new Date(m.expiresIso!).getTime() - now <= RENEWAL_WINDOW_DAYS * DAY;
 }
+
+/** PROTOTYPE ONLY: a person on a church's member list, as the church admin sees them. */
+export type ProtoRosterMember = {
+  id: string;
+  name: string;
+  email: string;
+  status: ProtoMembership["status"];
+  requestedIso: string;
+  updatedIso: string;
+  expiresIso?: string;
+};
 
 export type ProtoMessage = {
   id: string;
@@ -105,10 +117,26 @@ export type ProtoState = {
   intake: Intake | null;
   bookings: ProtoBooking[];
   threads: Record<string, ProtoMessage[]>;
+  /** PROTOTYPE ONLY: each church's sample member list, once its admin has changed something. */
+  rosters: Record<string, ProtoRosterMember[]>;
+  /** PROTOTYPE ONLY: the sample counselor signed in to the portal. Separate from the client account. */
+  counselorSlug: string | null;
+  /** PROTOTYPE ONLY: each counselor's portal settings, once they've changed something. */
+  portal: Record<string, PortalSettings>;
   toast: string | null;
 };
 
-const EMPTY: ProtoState = { user: null, memberships: [], intake: null, bookings: [], threads: {}, toast: null };
+const EMPTY: ProtoState = {
+  user: null,
+  memberships: [],
+  intake: null,
+  bookings: [],
+  threads: {},
+  rosters: {},
+  counselorSlug: null,
+  portal: {},
+  toast: null,
+};
 
 let state: ProtoState | null = null;
 const listeners = new Set<() => void>();
@@ -211,6 +239,8 @@ let toastTimer: ReturnType<typeof setTimeout> | undefined;
 export const proto = {
   /** Set by signOut so pages that need an account don't bounce to /sign-in on the way out. */
   signedOutOnPurpose: false,
+  /** The current state, for code outside React such as the real sign-in sync. */
+  snapshot: () => get(),
   signIn(user: ProtoUser) {
     proto.signedOutOnPurpose = false;
     set((s) => ({ ...s, user }));
@@ -250,6 +280,35 @@ export const proto = {
     reconfirm: (churchSlug: string) => setStatus(churchSlug, "verified"),
     decline: (churchSlug: string) => setStatus(churchSlug, "declined"),
     end: (churchSlug: string) => setStatus(churchSlug, "ended"),
+  },
+  /** PROTOTYPE ONLY: signs in to the counselor portal as one of the sample counselors. */
+  counselorSignIn(slug: string) {
+    set((s) => ({ ...s, counselorSlug: slug }));
+  },
+  counselorSignOut() {
+    set((s) => ({ ...s, counselorSlug: null }));
+  },
+  /** Saves the counselor's settings. `base` is what they had before, so the first save keeps the defaults. */
+  savePortal(slug: string, base: PortalSettings, patch: Partial<PortalSettings>) {
+    set((s) => ({ ...s, portal: { ...s.portal, [slug]: { ...base, ...patch } } }));
+  },
+  /** A message from the counselor into the prototype client's thread with them. */
+  counselorSend(slug: string, body: string) {
+    push(slug, { from: "counselor", body });
+  },
+  /** PROTOTYPE ONLY: what a church admin does to the sample members on its list. */
+  setRosterStatus(churchSlug: string, roster: ProtoRosterMember[], memberId: string, status: ProtoMembership["status"]) {
+    set((s) => ({
+      ...s,
+      rosters: {
+        ...s.rosters,
+        [churchSlug]: roster.map((m) =>
+          m.id === memberId
+            ? { ...m, status, updatedIso: now(), expiresIso: status === "verified" ? new Date(Date.now() + YEAR).toISOString() : undefined }
+            : m,
+        ),
+      },
+    }));
   },
   /** PROTOTYPE ONLY: move a membership's expiry so renewal can be tried without waiting a year. */
   setDaysUntilExpiry(churchSlug: string, days: number) {

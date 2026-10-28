@@ -98,7 +98,7 @@ function Form({
     if (op) return document.getElementById("offer-amount")?.focus();
     if (!agreed) return setShowError(true);
     setPending(true);
-    // Stand-in for the Calendly booking + webhook round trip.
+    // Stand-in for the server booking: re-check Google freeBusy, create the Meet event and rest block.
     setTimeout(() => {
       const id = proto.book({
         slug: c.slug,
