@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Mail } from "lucide-react";
@@ -113,7 +114,7 @@ function PrototypeSignIn() {
             </Button>
           </form>
           <p className="m-0 text-[13px] leading-normal text-slate-600">
-            No password needed. By continuing you agree to the Terms and Privacy Policy. Your conversations are private
+            No password needed. By continuing you agree to the <Link href="/terms">Terms</Link> and <Link href="/privacy">Privacy Policy</Link>. Your conversations are private
             between you and your counselor.
           </p>
         </>

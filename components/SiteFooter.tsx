@@ -16,6 +16,8 @@ const columns = [
       { href: "/accreditation", label: "Accreditation" },
       { href: "/for-churches", label: "For churches" },
       { href: "/for-counselors", label: "For counselors" },
+      { href: "/privacy", label: "Privacy" },
+      { href: "/terms", label: "Terms" },
     ],
   },
   {
