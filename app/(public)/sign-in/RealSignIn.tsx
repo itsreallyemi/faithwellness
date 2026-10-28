@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { proto, useProto } from "@/lib/prototype/store";
 import { googleEnabled, supabaseBrowser, useAuthState } from "@/lib/supabase/client";
-import { GoogleMark, safeNext } from "./shared";
+import { GoogleButton } from "./GoogleButton";
+import { safeNext } from "./shared";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const field = "min-h-12 rounded-md border border-border bg-cream px-4 text-base aria-invalid:border-peach-700";
@@ -146,20 +147,12 @@ export function RealSignIn() {
       </div>
       {googleEnabled && (
         <>
-          <Button
-            variant="secondary"
-            size="lg"
-            className="w-full"
-            onClick={() =>
-              supabaseBrowser().auth.signInWithOAuth({
-                provider: "google",
-                options: { redirectTo: `${location.origin}/auth/callback?next=${encodeURIComponent(next)}` },
-              })
-            }
-          >
-            <GoogleMark />
-            Continue with Google
-          </Button>
+          <GoogleButton
+            next={next}
+            // Same landing as the emailed link: asks for a name if Google didn't give one, then carries on.
+            onSignedIn={() => window.location.replace(`/sign-in?next=${encodeURIComponent(next)}&welcome=1`)}
+            onError={setError}
+          />
           <div className="flex items-center gap-3 text-[13px] text-slate-500" aria-hidden="true">
             <span className="h-px flex-1 bg-divider" />
             or
