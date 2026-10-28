@@ -24,6 +24,7 @@ const columns = [
     title: "Support",
     links: [
       { href: "https://988lifeline.org", label: "Crisis support (988)" },
+      { href: "/contact", label: "Contact us" },
       { href: "/sign-in", label: "Sign in" },
       { href: "/portal", label: "Counselor sign in" },
     ],
