@@ -31,7 +31,9 @@ export function RealSignIn() {
   );
 
   // First visit goes through the questions; after that, straight to where they were going.
-  const destination = s?.intake ? next : `/get-started?next=${encodeURIComponent(next)}`;
+  // Counselors applying, the portal and admin skip the client questions.
+  const skipQuestions = s?.intake || /^\/(for-counselors|portal|admin)(\/|#|\?|$)/.test(next);
+  const destination = skipQuestions ? next : `/get-started?next=${encodeURIComponent(next)}`;
   // A full page load, so a stalled in-app navigation can never leave them on a loading screen.
   const finish = () => window.location.replace(destination);
 

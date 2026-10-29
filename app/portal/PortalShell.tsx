@@ -238,14 +238,23 @@ function SignIn({ counselors }: { counselors: Counselor[] }) {
           <p className="m-0 text-slate-600">Manage your sessions, hours, fees and calendar.</p>
         </div>
         {authEnabled &&
-          (auth === "signed-in" && s?.user ? (
+          (auth === "signed-in" && s?.user && ownCounselorSlug ? (
+            // Approved, but their profile isn't in the directory yet, so the portal has nothing to load.
+            <Card padding="compact" className="flex flex-col gap-2">
+              <b>Welcome, {s.user.name}. You&rsquo;re approved.</b>
+              <span className="text-[15px] text-slate-600">
+                Setting up your profile, hours and fees here is the next step, and it&rsquo;s nearly ready. We&rsquo;ll
+                email you as soon as you can start.
+              </span>
+            </Card>
+          ) : auth === "signed-in" && s?.user ? (
             <Card padding="compact" className="flex flex-col gap-2">
               <b>
                 You&rsquo;re signed in as {s.user.name} ({s.user.email})
               </b>
               <span className="text-[15px] text-slate-600">
-                This account isn&rsquo;t set up as a counselor yet. Once FaithWellness approves your application, your portal
-                opens here automatically.
+                This account isn&rsquo;t set up as a counselor yet. <Link href="/for-counselors#apply">Apply to join</Link>, or
+                check your application there. Once FaithWellness approves it, your portal opens here.
               </span>
             </Card>
           ) : (
