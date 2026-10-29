@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { createContext, useContext, useMemo } from "react";
 import { CalendarDays, House, LogOut, MessageCircle, Settings, UserRound } from "lucide-react";
+import { ApplicationSummary, useMyApplication } from "@/components/ApplicationProgress";
 import { signOutEverywhere } from "@/components/AuthSync";
 import { useDeviceTimeZone } from "@/components/LocalTime";
 import { PrototypeBanner } from "@/components/prototype/PrototypeBanner";
@@ -229,6 +230,7 @@ function Count({ n }: { n: number }) {
 function SignIn({ counselors }: { counselors: Counselor[] }) {
   const s = useProto();
   const auth = useAuthState();
+  const mine = useMyApplication();
   return (
     <main className="flex flex-1 justify-center bg-cream px-4 py-10 md:py-16">
       <div className="flex w-full max-w-[560px] flex-col gap-6">
@@ -238,14 +240,20 @@ function SignIn({ counselors }: { counselors: Counselor[] }) {
           <p className="m-0 text-slate-600">Manage your sessions, hours, fees and calendar.</p>
         </div>
         {authEnabled &&
-          (auth === "signed-in" && s?.user && ownCounselorSlug ? (
-            // Approved, but their profile isn't in the directory yet, so the portal has nothing to load.
-            <Card padding="compact" className="flex flex-col gap-2">
-              <b>Welcome, {s.user.name}. You&rsquo;re approved.</b>
-              <span className="text-[15px] text-slate-600">
-                Setting up your profile, hours and fees here is the next step, and it&rsquo;s nearly ready. We&rsquo;ll
-                email you as soon as you can start.
-              </span>
+          (auth === "signed-in" && s?.user && mine?.app ? (
+            <Card padding="compact" className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1">
+                <b>
+                  {mine.app.status === "approved" ? `Welcome, ${s.user.name}. You\u2019re approved.` : "Your counselor application"}
+                </b>
+                {mine.app.status === "approved" && (
+                  <span className="text-[15px] text-slate-600">
+                    Setting up your profile, hours and fees here is the next step, and it&rsquo;s nearly ready. We&rsquo;ll
+                    email you as soon as you can start.
+                  </span>
+                )}
+              </div>
+              <ApplicationSummary app={mine.app} live={mine.live} hideAction={mine.app.status === "approved"} />
             </Card>
           ) : auth === "signed-in" && s?.user ? (
             <Card padding="compact" className="flex flex-col gap-2">
@@ -253,8 +261,8 @@ function SignIn({ counselors }: { counselors: Counselor[] }) {
                 You&rsquo;re signed in as {s.user.name} ({s.user.email})
               </b>
               <span className="text-[15px] text-slate-600">
-                This account isn&rsquo;t set up as a counselor yet. <Link href="/for-counselors#apply">Apply to join</Link>, or
-                check your application there. Once FaithWellness approves it, your portal opens here.
+                This account isn&rsquo;t set up as a counselor yet. <Link href="/for-counselors#apply">Apply to join</Link>{" "}
+                first. Once FaithWellness approves you, your portal opens here.
               </span>
             </Card>
           ) : (

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { CalendarDays, ChevronRight, Eye, EyeOff, MessageCircle, Trash2 } from "lucide-react";
+import { ApplicationSummary, useMyApplication } from "@/components/ApplicationProgress";
 import { useDeviceTimeZone, useViewerTimeZone } from "@/components/LocalTime";
 import { MemberBadge } from "@/components/prototype/MemberBadge";
 import { RequireSignIn } from "@/components/prototype/RequireSignIn";
@@ -35,6 +36,7 @@ function Account({ s }: { s: SignedIn }) {
       </header>
 
       <Details user={s.user} />
+      <CounselorApplication />
       <Sessions s={s} />
       <Memberships s={s} />
       <Answers s={s} />
@@ -58,6 +60,19 @@ function Section({ id, title, action, children }: { id: string; title: string; a
 }
 
 const field = "min-h-12 w-full rounded-md border border-border bg-cream px-4 text-base aria-invalid:border-peach-700";
+
+// Counselor application ---------------------------------------------------------
+
+/** Only shown to people who have applied to be a counselor. */
+function CounselorApplication() {
+  const mine = useMyApplication();
+  if (!mine?.app) return null;
+  return (
+    <Section id="application" title="Counselor application">
+      <ApplicationSummary app={mine.app} live={mine.live} />
+    </Section>
+  );
+}
 
 // Details ----------------------------------------------------------------------
 

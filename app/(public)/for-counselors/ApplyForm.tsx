@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { CircleAlert, CircleCheck, Clock } from "lucide-react";
+import { ApplicationTracker, accreditorName, useMyApplication } from "@/components/ApplicationProgress";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { cn } from "@/lib/cn";
@@ -35,19 +36,12 @@ export function ApplyForm({ bodies }: { bodies: Body[] }) {
 function RealApply({ bodies }: { bodies: Body[] }) {
   const auth = useAuthState();
   const s = useProto();
-  const [app, setApp] = useState<Application | null | "loading">("loading");
+  const mine = useMyApplication();
+  // Set after sending, so the new status shows straight away.
+  const [sent, setSent] = useState<Application | null>(null);
   const [editing, setEditing] = useState(false);
 
-  useEffect(() => {
-    if (auth !== "signed-in") return;
-    supabaseBrowser()
-      .from("counselor_applications")
-      .select("*")
-      .maybeSingle()
-      .then(({ data }) => setApp((data as Application | null) ?? null));
-  }, [auth]);
-
-  if (auth === "loading" || (auth === "signed-in" && app === "loading")) {
+  if (auth === "loading" || (auth === "signed-in" && mine === null)) {
     return <Card id="apply" aria-busy="true" className="h-96 scroll-mt-6 animate-pulse self-start bg-cream-200!" />;
   }
 
@@ -68,17 +62,21 @@ function RealApply({ bodies }: { bodies: Body[] }) {
     );
   }
 
-  const current = app === "loading" ? null : app;
-  const bodyName = (a: Application) =>
-    a.accrediting_body === NOT_LISTED ? a.church_name : (bodies.find((b) => b.slug === a.accrediting_body)?.name ?? a.church_name);
+  const current = sent ?? mine?.app ?? null;
+  const tracker = current && <ApplicationTracker app={current} live={Boolean(mine?.live) && !sent} />;
 
   if (current && !editing) {
     if (current.status === "approved") {
       return (
-        <StatusCard tone="good" title="You’re approved">
-          <p className="m-0">Welcome to FaithWellness. Your counselor portal is ready for you to set up your profile.</p>
+        <StatusCard tone="good" title={mine?.live ? "You’re live on FaithWellness" : "You’re approved"}>
+          <p className="m-0">
+            {mine?.live
+              ? "Clients can now find and book you. Manage your sessions and settings in your portal."
+              : "Welcome to FaithWellness. Your counselor portal is ready for you to set up your profile."}
+          </p>
+          {tracker}
           <Button href="/portal" size="lg" className="self-start">
-            Go to your portal
+            {mine?.live ? "Go to your portal" : "Set up your profile"}
           </Button>
         </StatusCard>
       );
@@ -87,6 +85,7 @@ function RealApply({ bodies }: { bodies: Body[] }) {
       return (
         <StatusCard tone="attention" title="We need a little more information">
           <Quote>{current.admin_note}</Quote>
+          {tracker}
           <Button size="lg" className="self-start" onClick={() => setEditing(true)}>
             Update my application
           </Button>
@@ -100,6 +99,7 @@ function RealApply({ bodies }: { bodies: Body[] }) {
           <p className="m-0">
             Questions? Email <a href={`mailto:${contactEmail}`}>{contactEmail}</a>.
           </p>
+          {tracker}
           <Button variant="secondary" size="lg" className="self-start" onClick={() => setEditing(true)}>
             Apply again
           </Button>
@@ -109,9 +109,10 @@ function RealApply({ bodies }: { bodies: Body[] }) {
     return (
       <StatusCard tone="waiting" title="Application received">
         <p className="m-0">
-          Sent {shortDate(current.submitted_at)}. We&rsquo;ll confirm your accreditation with {bodyName(current)} and email you at{" "}
-          <b className="text-slate-900">{current.email}</b>. This usually takes a few days.
+          Sent {shortDate(current.submitted_at)}. We&rsquo;ll confirm your accreditation with {accreditorName(current)} and email you at{" "}
+          <b className="text-slate-900">{current.email}</b> when there&rsquo;s news. You can check back here any time.
         </p>
+        {tracker}
         <Button variant="link" className="self-start px-0!" onClick={() => setEditing(true)}>
           Edit my answers
         </Button>
@@ -150,7 +151,7 @@ function RealApply({ bodies }: { bodies: Body[] }) {
           })
           .single();
         if (error) return "We couldn’t send your application. Please try again.";
-        setApp(data as Application);
+        setSent(data as Application);
         setEditing(false);
         return null;
       }}
