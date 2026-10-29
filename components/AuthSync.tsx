@@ -2,7 +2,7 @@
 
 import type { Session } from "@supabase/supabase-js";
 import { useEffect } from "react";
-import { authEnabled, setAuthState, setOwnCounselorSlug, supabaseBrowser } from "@/lib/supabase/client";
+import { authEnabled, setAccountKind, setAuthState, setOwnCounselorSlug, supabaseBrowser } from "@/lib/supabase/client";
 import { proto } from "@/lib/prototype/store";
 
 /**
@@ -20,6 +20,7 @@ export function AuthSync() {
       if (!alive) return;
       if (!session) {
         setOwnCounselorSlug(null);
+        setAccountKind("client");
         if (proto.snapshot().user) {
           proto.signOut();
           proto.signedOutOnPurpose = false;
@@ -35,6 +36,14 @@ export function AuthSync() {
       // A new account has no name yet. /sign-in asks for it before they continue.
       if (name && (current?.email !== email || current.name !== name)) {
         proto.signIn({ name, email, timeZone: current?.email === email ? current.timeZone : undefined });
+      }
+
+      // Counselors and applicants are "provider", admins "staff". Set before signed-in, so /sign-in knows where to send them.
+      if (profile?.role === "admin") setAccountKind("staff");
+      else if (profile?.role === "counselor") setAccountKind("provider");
+      else {
+        const { data: application } = await sb.from("counselor_applications").select("id").maybeSingle();
+        setAccountKind(application ? "provider" : "client");
       }
 
       if (profile?.role === "counselor") {
@@ -64,5 +73,6 @@ export function AuthSync() {
 export async function signOutEverywhere() {
   if (authEnabled) await supabaseBrowser().auth.signOut();
   setOwnCounselorSlug(null);
+  setAccountKind("client");
   proto.signOut();
 }

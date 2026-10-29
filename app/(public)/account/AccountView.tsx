@@ -15,7 +15,7 @@ import { Card } from "@/components/ui/Card";
 import { intakeRows } from "@/lib/prototype/intake";
 import { formatSession } from "@/lib/prototype/format";
 import { isUpForRenewal, membershipStatus, proto, type ProtoState, type ProtoUser } from "@/lib/prototype/store";
-import { authEnabled, supabaseBrowser } from "@/lib/supabase/client";
+import { authEnabled, supabaseBrowser, useAccountKind } from "@/lib/supabase/client";
 import { zoneCity } from "@/lib/time";
 
 type SignedIn = ProtoState & { user: ProtoUser };
@@ -25,6 +25,7 @@ export function AccountView() {
 }
 
 function Account({ s }: { s: SignedIn }) {
+  const isClient = useAccountKind() === "client";
   return (
     <div className="flex flex-col gap-6">
       <header className="flex items-center gap-4">
@@ -39,7 +40,7 @@ function Account({ s }: { s: SignedIn }) {
       <CounselorApplication />
       <Sessions s={s} />
       <Memberships s={s} />
-      <Answers s={s} />
+      {isClient && <Answers s={s} />}
       <DeleteAccount s={s} />
     </div>
   );

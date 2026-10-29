@@ -11,6 +11,7 @@ import { initialsFor } from "@/components/ui/Avatar";
 import { Logo } from "@/components/ui/Logo";
 import { cn } from "@/lib/cn";
 import { membershipStatus, useProto } from "@/lib/prototype/store";
+import { useAccountKind } from "@/lib/supabase/client";
 
 type NavLink = { href: string; label: string; match: (p: string) => boolean };
 
@@ -35,6 +36,8 @@ export function SiteHeader() {
   const router = useRouter();
   const s = useProto();
   const user = s?.user ?? null;
+  // "Your answers and matches" is for clients only.
+  const isClient = useAccountKind() === "client";
   const [open, setOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const accountRef = useRef<HTMLDivElement>(null);
@@ -112,12 +115,14 @@ export function SiteHeader() {
                   >
                     Church memberships
                   </Link>
-                  <Link
-                    href="/get-started"
-                    className="flex min-h-11 w-full items-center rounded-sm px-3 text-[15px] text-slate-900! no-underline hover:bg-cream"
-                  >
-                    Your answers and matches
-                  </Link>
+                  {isClient && (
+                    <Link
+                      href="/get-started"
+                      className="flex min-h-11 w-full items-center rounded-sm px-3 text-[15px] text-slate-900! no-underline hover:bg-cream"
+                    >
+                      Your answers and matches
+                    </Link>
+                  )}
                   <button
                     type="button"
                     onClick={signOut}
@@ -170,7 +175,9 @@ export function SiteHeader() {
                 ? [
                     { href: "/account", label: "Your profile", match: (p: string) => p.startsWith("/account") },
                     { href: "/membership", label: "Church memberships", match: (p: string) => p.startsWith("/membership") },
-                    { href: "/get-started", label: "Your answers and matches", match: (p: string) => p.startsWith("/get-started") },
+                    ...(isClient
+                      ? [{ href: "/get-started", label: "Your answers and matches", match: (p: string) => p.startsWith("/get-started") }]
+                      : []),
                   ]
                 : [{ href: "/sign-in", label: "Sign in", match: () => false }]),
             ].map((l) => (

@@ -48,3 +48,28 @@ export function useAuthState() {
     () => (authEnabled ? "loading" : "signed-out"),
   );
 }
+
+/**
+ * What kind of account is signed in. Only clients are walked through the "find a counselor" questions;
+ * counselors (and people who've applied), FaithWellness staff and, later, church admins skip them.
+ */
+export type AccountKind = "client" | "provider" | "staff";
+let accountKind: AccountKind = "client";
+const kindListeners = new Set<() => void>();
+
+export function setAccountKind(next: AccountKind) {
+  if (next === accountKind) return;
+  accountKind = next;
+  kindListeners.forEach((l) => l());
+}
+
+export function useAccountKind() {
+  return useSyncExternalStore(
+    (l) => {
+      kindListeners.add(l);
+      return () => kindListeners.delete(l);
+    },
+    () => accountKind,
+    () => "client" as AccountKind,
+  );
+}
