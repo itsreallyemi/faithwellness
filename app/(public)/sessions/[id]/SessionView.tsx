@@ -15,6 +15,7 @@ import { downloadIcs } from "@/lib/prototype/ics";
 import { counselorLocal, formatSession } from "@/lib/prototype/format";
 import type { CounselorLite } from "@/lib/prototype/lite";
 import { agreedFeeCents, proto, type ProtoBooking } from "@/lib/prototype/store";
+import { cancelReal } from "@/lib/supabase/bookings";
 import { zoneCity } from "@/lib/time";
 
 export function SessionView({ id, counselors }: { id: string; counselors: CounselorLite[] }) {
@@ -41,6 +42,7 @@ function Detail({ booking: b, counselor: c, email }: { booking: ProtoBooking; co
   const isNew = useSearchParams().get("new") === "1";
   const tz = useViewerTimeZone(c.timeZone);
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const [canceling, setCanceling] = useState(false);
   const start = new Date(b.startIso);
   const canceled = b.status === "canceled";
   const local = counselorLocal(start, tz, c.timeZone, c.preferredName);
@@ -107,7 +109,7 @@ function Detail({ booking: b, counselor: c, email }: { booking: ProtoBooking; co
 
           {!canceled && (
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-              <Button size="lg" onClick={joinMeet}>
+              <Button size="lg" onClick={() => joinMeet(b)}>
                 <Video size={18} strokeWidth={1.8} aria-hidden="true" /> Join Google Meet
               </Button>
               <Button
@@ -154,8 +156,19 @@ function Detail({ booking: b, counselor: c, email }: { booking: ProtoBooking; co
                 {c.preferredName} will see a note in your messages.
               </p>
               <div className="flex flex-wrap gap-3">
-                <Button variant="secondary" onClick={() => proto.cancel(b.id)}>
-                  Yes, cancel it
+                <Button
+                  variant="secondary"
+                  disabled={canceling}
+                  onClick={async () => {
+                    if (!b.real) return proto.cancel(b.id);
+                    // Real sessions: the server removes the Google event, and Google emails the update.
+                    setCanceling(true);
+                    const ok = await cancelReal(b.id, "Session canceled.");
+                    setCanceling(false);
+                    if (!ok) proto.toast("That didn’t cancel. Please try again.");
+                  }}
+                >
+                  {canceling ? "Canceling…" : "Yes, cancel it"}
                 </Button>
                 <Button variant="link" onClick={() => setConfirmCancel(false)}>
                   Keep my session
@@ -238,7 +251,8 @@ function InsuranceStatus({ booking: b, counselor: c }: { booking: ProtoBooking; 
           Message {c.preferredName}
         </Button>
       )}
-      {/* PROTOTYPE ONLY: play the counselor's side. */}
+      {/* PROTOTYPE ONLY: play the counselor's side. Real sessions are answered from the counselor's portal. */}
+      {!b.real && (
       <div className="flex flex-col gap-2 rounded-md border border-dashed border-peach-400 bg-white/70 px-3 py-2.5 text-sm text-peach-800">
         <span>Prototype: act as {c.preferredName} verifying coverage.</span>
         <div className="flex flex-wrap gap-2">
@@ -250,6 +264,7 @@ function InsuranceStatus({ booking: b, counselor: c }: { booking: ProtoBooking; 
           </Button>
         </div>
       </div>
+      )}
     </div>
   );
 }
@@ -309,7 +324,8 @@ function PriceRequestStatus({ booking: b, counselor: c }: { booking: ProtoBookin
           Message {c.preferredName}
         </Button>
       )}
-      {/* PROTOTYPE ONLY: play the counselor's side. */}
+      {/* PROTOTYPE ONLY: play the counselor's side. Real sessions are answered from the counselor's portal. */}
+      {!b.real && (
       <div className="flex flex-col gap-2 rounded-md border border-dashed border-peach-400 bg-white/70 px-3 py-2.5 text-sm text-peach-800">
         <span>Prototype: act as {c.preferredName} answering the request.</span>
         <div className="flex flex-wrap gap-2">
@@ -321,6 +337,7 @@ function PriceRequestStatus({ booking: b, counselor: c }: { booking: ProtoBookin
           </Button>
         </div>
       </div>
+      )}
     </div>
   );
 }

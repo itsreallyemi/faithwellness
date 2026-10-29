@@ -16,6 +16,7 @@ import { Logo } from "@/components/ui/Logo";
 import { cn } from "@/lib/cn";
 import { defaultSettings, sampleSessions, type PortalSession, type PortalSettings } from "@/lib/prototype/portal";
 import { agreedFeeCents, proto, useProto, type ProtoBooking, type ProtoState } from "@/lib/prototype/store";
+import { toProtoBooking, type BookingRow } from "@/lib/bookings";
 import { formatFee } from "@/lib/format";
 import { contactEmail } from "@/lib/site";
 import { authEnabled, ownCounselorSlug, useAuthState } from "@/lib/supabase/client";
@@ -156,7 +157,10 @@ export function PortalShell({
           reload();
         });
       },
-      sessions: [...sampleSessions(counselor, settings), ...yours].sort((a, b) => a.startIso.localeCompare(b.startIso)),
+      // Real counselors see their real bookings only; prototype samples keep their sample sessions.
+      sessions: (ownLoaded ? realSessions(ownLoaded.bookings) : [...sampleSessions(counselor, settings), ...yours]).sort((a, b) =>
+        a.startIso.localeCompare(b.startIso),
+      ),
       unread: thread.slice(lastCounselor + 1).filter((m) => m.from === "client").length,
       real: Boolean(ownLoaded),
       live: ownLoaded?.live ?? true,
@@ -219,6 +223,25 @@ export function PortalShell({
       </div>
     </PortalContext.Provider>
   );
+}
+
+/** Real bookings as portal sessions. "First session" marks each client's earliest booking. */
+function realSessions(rows: BookingRow[]): PortalSession[] {
+  const first = new Map<string, string>();
+  for (const r of [...rows].sort((a, b) => a.start_utc.localeCompare(b.start_utc))) if (!first.has(r.client_id)) first.set(r.client_id, r.id);
+  return rows.map((r) => ({
+    id: r.id,
+    clientName: shortName(r.client_name || "Client"),
+    clientTimeZone: r.client_time_zone || "UTC",
+    startIso: new Date(r.start_utc).toISOString(),
+    duration: r.duration,
+    status: r.status,
+    firstSession: first.get(r.client_id) === r.id,
+    payment: paymentLabel(toProtoBooking(r)),
+    meetUrl: r.meet_url,
+    bookingId: r.id,
+    real: true,
+  }));
 }
 
 /** "Grace T." from "Grace Thompson". Counselors see first name and last initial. */

@@ -71,7 +71,7 @@ export function HomeView() {
                 </span>
               </div>
               <div className="flex flex-wrap gap-2.5">
-                {settings.google.connected && settings.google.autoMeet ? (
+                {(next.real ? next.meetUrl : settings.google.connected && settings.google.autoMeet) ? (
                   <Button href={next.meetUrl} target="_blank" rel="noreferrer">
                     <Video size={18} strokeWidth={1.8} aria-hidden="true" />
                     Join Meet

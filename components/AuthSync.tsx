@@ -4,6 +4,7 @@ import type { Session } from "@supabase/supabase-js";
 import { useEffect } from "react";
 import { authEnabled, setAccountKind, setAuthState, setOwnAvatar, setOwnCounselorSlug, supabaseBrowser } from "@/lib/supabase/client";
 import { proto } from "@/lib/prototype/store";
+import { loadClientBookings } from "@/lib/supabase/bookings";
 
 /**
  * Bridges the real Supabase sign-in to the prototype pages, which still read the account from the
@@ -19,6 +20,8 @@ export function AuthSync() {
     const sync = async (session: Session | null) => {
       if (!alive) return;
       if (!session) {
+        // Real bookings belong to the account, not this browser.
+        proto.syncRealBookings([]);
         setOwnCounselorSlug(null);
         setOwnAvatar(null);
         setAccountKind("client");
@@ -55,6 +58,8 @@ export function AuthSync() {
       } else {
         setOwnCounselorSlug(null);
       }
+      // Real bookings with counselors who have a connected calendar, shown alongside prototype ones.
+      proto.syncRealBookings(await loadClientBookings(id));
       if (alive) setAuthState("signed-in");
     };
 

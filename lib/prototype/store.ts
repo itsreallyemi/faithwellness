@@ -34,6 +34,8 @@ export type ProtoBooking = {
   insurance?: ProtoInsurance;
   /** Set when the client offered a lower amount because the fee is a hardship. */
   priceRequest?: ProtoPriceRequest;
+  /** Saved in the database (a counselor with a connected calendar), not just this browser. */
+  real?: boolean;
 };
 
 export type ProtoPriceRequest = {
@@ -432,7 +434,31 @@ export const proto = {
       bookings: s.bookings.map((b) => (b.id === bookingId && b.insurance ? { ...b, insurance: { ...b.insurance, status } } : b)),
     }));
   },
-  cancel(bookingId: string, reason = "Session canceled.") {
+/** Replaces this browser's copies of real bookings with what the database has (on sign-in). */
+  syncRealBookings(list: ProtoBooking[]) {
+    set((s) => ({ ...s, bookings: [...s.bookings.filter((b) => !b.real), ...list] }));
+  },
+  /**
+   * Adds or updates one real booking. New ones get the same notes in the message thread as a prototype
+   * booking (messages are still prototype); a cancellation adds its note too.
+   */
+  saveRealBooking(booking: ProtoBooking, event?: "booked" | "canceled", reason?: string) {
+    set((s) => ({ ...s, bookings: [...s.bookings.filter((b) => b.id !== booking.id), booking] }));
+    if (event === "booked") {
+      if (booking.note.trim()) push(booking.slug, { from: "client", body: booking.note.trim() });
+      push(booking.slug, { from: "system", body: "Session confirmed", bookingId: booking.id });
+      if (booking.priceRequest) {
+        const offer = booking.priceRequest.offeredCents;
+        push(booking.slug, {
+          from: "system",
+          body: offer === 0 ? "You asked whether this session could be free, because the fee is a hardship right now." : `You offered ${Math.round(offer / 100)} for this session instead of the usual fee.`,
+          bookingId: booking.id,
+        });
+      }
+    }
+    if (event === "canceled") push(booking.slug, { from: "system", body: reason ?? "Session canceled.", bookingId: booking.id });
+  },
+    cancel(bookingId: string, reason = "Session canceled.") {
     const booking = get().bookings.find((b) => b.id === bookingId);
     if (!booking || booking.status === "canceled") return;
     set((s) => ({

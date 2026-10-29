@@ -343,7 +343,7 @@ function Context({ counselor: c, state }: { counselor: CounselorLite; state: Pro
             <span className="text-[13px] text-slate-600">
               {upcoming.duration} min · Google Meet · {upcoming.insurance ? `Insurance · ${upcoming.insurance.provider}` : upcoming.memberCare ? "Free for members" : feeSummary(upcoming, c.preferredName)}
             </span>
-            <Button onClick={joinMeet} className="mt-1 min-h-12">
+            <Button onClick={() => joinMeet(upcoming)} className="mt-1 min-h-12">
               Join when it starts
             </Button>
           </>

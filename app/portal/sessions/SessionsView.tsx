@@ -8,6 +8,7 @@ import { cn } from "@/lib/cn";
 import { formatSession, formatTime } from "@/lib/prototype/format";
 import type { PortalSession } from "@/lib/prototype/portal";
 import { proto } from "@/lib/prototype/store";
+import { cancelReal } from "@/lib/supabase/bookings";
 import { usePortal } from "../PortalShell";
 import { clientLocal, dayLabel, field, PageHeader, smallButton } from "../ui";
 
@@ -65,15 +66,23 @@ export function SessionsView() {
 }
 
 function SessionRow({ session: x, upcoming }: { session: PortalSession; upcoming: boolean }) {
-  const { counselor, settings, save } = usePortal();
+  const { counselor, settings, save, reload } = usePortal();
   const tz = settings.timeZone;
   const [canceling, setCanceling] = useState(false);
   const [note, setNote] = useState("");
   const start = new Date(x.startIso);
-  const meet = settings.google.connected && settings.google.autoMeet;
+  const meet = x.real ? Boolean(x.meetUrl) : settings.google.connected && settings.google.autoMeet;
 
-  const cancel = () => {
+  const cancel = async () => {
     const day = formatSession(start, x.duration, x.clientTimeZone);
+    if (x.real && x.bookingId) {
+      // Removes the Google event; Google emails the client that it's canceled.
+      const ok = await cancelReal(x.bookingId, note.trim() || `${counselor.preferredName} canceled the session on ${day}.`);
+      setCanceling(false);
+      if (!ok) return proto.toast("That didn’t cancel. Please try again.");
+      reload();
+      return proto.toast(`Session canceled. ${x.clientName} has been told by email.`);
+    }
     if (x.bookingId) {
       proto.cancel(x.bookingId, `${counselor.preferredName} canceled the session on ${day}.`);
       if (note.trim()) proto.counselorSend(counselor.slug, note.trim());

@@ -16,13 +16,21 @@ import { formatFee } from "@/lib/format";
 import { counselorLocal, formatSession } from "@/lib/prototype/format";
 import type { CounselorLite } from "@/lib/prototype/lite";
 import { proto, useIsMemberOf } from "@/lib/prototype/store";
+import { bookReal } from "@/lib/supabase/bookings";
 import { zoneCity } from "@/lib/time";
 import type { Duration } from "@/lib/types";
 
 const OTHER = "other";
 const insField = "min-h-12 w-full rounded-md border border-border bg-white px-4 text-base aria-invalid:border-peach-700";
 
-type Props = { counselor: CounselorLite; startIso: string; duration: Duration; reschedule: string | null };
+type Props = {
+  counselor: CounselorLite;
+  startIso: string;
+  duration: Duration;
+  reschedule: string | null;
+  /** Book for real through /api/bookings (counselor has a connected calendar), not just in this browser. */
+  real: boolean;
+};
 
 export function ConfirmBooking(props: Props) {
   return <RequireSignIn>{({ user, bookings }) => <Form {...props} user={user} rescheduling={bookings.find((b) => b.id === props.reschedule)} />}</RequireSignIn>;
@@ -33,6 +41,7 @@ function Form({
   startIso,
   duration,
   reschedule,
+  real,
   user,
   rescheduling,
 }: Props & { user: { name: string; email: string }; rescheduling?: { startIso: string } }) {
@@ -42,6 +51,7 @@ function Form({
   const [agreed, setAgreed] = useState(false);
   const [showError, setShowError] = useState(false);
   const [pending, setPending] = useState(false);
+  const [bookError, setBookError] = useState("");
 
   const member = useIsMemberOf(c.churchSlug);
   const start = new Date(startIso);
@@ -98,7 +108,29 @@ function Form({
     if (op) return document.getElementById("offer-amount")?.focus();
     if (!agreed) return setShowError(true);
     setPending(true);
-    // Stand-in for the server booking: re-check Google freeBusy, create the Meet event and rest block.
+    setBookError("");
+    if (real) {
+      // The server re-checks the calendar, saves the booking and writes the Google event with its Meet link.
+      bookReal({
+        slug: c.slug,
+        start: startIso,
+        duration,
+        note,
+        memberCare: member,
+        rescheduleOf: reschedule,
+        offer: offering ? { cents: cantPay ? 0 : Math.round(offerDollars * 100), note: offerNote } : null,
+        insurance: usingInsurance ? { provider, memberIdLast4: memberId.replace(/\s/g, "").slice(-4), group: group.trim() } : null,
+      }).then((result) => {
+        if ("error" in result) {
+          setPending(false);
+          setBookError(result.error);
+          return;
+        }
+        router.push(`/sessions/${result.booking.id}?new=1`);
+      });
+      return;
+    }
+    // Prototype: stands in for the server booking.
     setTimeout(() => {
       const id = proto.book({
         slug: c.slug,
@@ -512,6 +544,14 @@ function Form({
             )}
           </div>
 
+          {bookError && (
+            <p role="alert" className="m-0 rounded-md bg-peach-50 px-4 py-3 text-sm text-peach-800">
+              {bookError}{" "}
+              <Link href={back} className="font-semibold">
+                See other times
+              </Link>
+            </p>
+          )}
           <Button type="submit" size="lg" className="min-h-14 text-base" disabled={pending}>
             {pending ? `Checking ${c.preferredName}’s calendar…` : rescheduling ? "Confirm new time" : "Confirm booking"}
           </Button>

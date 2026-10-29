@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/Button";
 import { CrisisNotice } from "@/components/ui/CrisisNotice";
 import { getCounselor } from "@/lib/counselors";
 import { toLite } from "@/lib/prototype/lite";
+import { bookableCounselor } from "@/lib/server/bookings";
+import { calendarConfigured } from "@/lib/server/secrets";
 import { ConfirmBooking } from "./ConfirmBooking";
 
 export const metadata: Metadata = { title: "Confirm your session" };
@@ -23,12 +25,14 @@ export default async function BookPage({ params, searchParams }: Props) {
   const valid = !Number.isNaN(Date.parse(start));
   const duration = q.duration === "30" ? 30 : 60;
   const reschedule = typeof q.reschedule === "string" ? q.reschedule : null;
+  // Counselors with a connected calendar take real bookings; sample counselors stay prototype.
+  const real = calendarConfigured ? Boolean(await bookableCounselor(slug)) : false;
 
   return (
     <main className="mx-auto flex max-w-[1080px] flex-col gap-6 px-4 py-6 md:px-8 md:py-10">
       {valid ? (
         <Suspense>
-          <ConfirmBooking counselor={toLite(c)} startIso={new Date(start).toISOString()} duration={duration} reschedule={reschedule} />
+          <ConfirmBooking counselor={toLite(c)} startIso={new Date(start).toISOString()} duration={duration} reschedule={reschedule} real={real} />
         </Suspense>
       ) : (
         <div className="flex flex-col items-start gap-4">

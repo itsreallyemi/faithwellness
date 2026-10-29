@@ -3,6 +3,7 @@
 // The signed-in counselor's own profile, loaded in the browser (RLS lets them read it before it's published),
 // and the portal settings that save to the database. Calendar, notifications and days off are still prototype.
 
+import { BOOKING_SELECT, type BookingRow } from "@/lib/bookings";
 import { COUNSELOR_SELECT, fromRow, type CounselorRow } from "@/lib/counselor-row";
 import type { PortalSettings } from "@/lib/prototype/portal";
 import type { Counselor, CounselorService } from "@/lib/types";
@@ -28,6 +29,8 @@ export type OwnCounselor = {
   missing: GoLiveItem[];
   newRequests: number;
   calendar: CalendarConnection | null;
+  /** Real bookings with this counselor, as stored. */
+  bookings: BookingRow[];
 };
 
 export async function loadOwnCounselor(slug: string): Promise<OwnCounselor | null> {
@@ -38,13 +41,14 @@ export async function loadOwnCounselor(slug: string): Promise<OwnCounselor | nul
   ]);
   if (!data) return null;
   const row = data as unknown as CounselorRow & { id: string; is_published: boolean };
-  const [{ count }, { data: cal }] = await Promise.all([
+  const [{ count }, { data: cal }, { data: bookings }] = await Promise.all([
     sb.from("service_requests").select("id", { count: "exact", head: true }).eq("counselor_id", row.id).eq("status", "new"),
     sb
       .from("integrations")
       .select("google_email, calendars, check_calendars, write_calendar, status")
       .eq("counselor_id", row.id)
       .maybeSingle(),
+    sb.from("bookings").select(BOOKING_SELECT).eq("counselor_id", row.id).order("start_utc"),
   ]);
   return {
     id: row.id,
@@ -52,6 +56,7 @@ export async function loadOwnCounselor(slug: string): Promise<OwnCounselor | nul
     live: row.is_published,
     missing: (missing as GoLiveItem[] | null) ?? [],
     newRequests: count ?? 0,
+    bookings: (bookings as BookingRow[] | null) ?? [],
     calendar: cal
       ? {
           googleEmail: cal.google_email,

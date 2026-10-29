@@ -10,8 +10,10 @@ import type { CounselorLite } from "@/lib/prototype/lite";
 import { proto, type ProtoBooking } from "@/lib/prototype/store";
 import { zoneCity } from "@/lib/time";
 
-export function joinMeet() {
-  proto.toast("Prototype: in the real app this opens Google Meet when the session starts.");
+/** Opens the session's Google Meet. Prototype bookings have no real room, so they explain instead. */
+export function joinMeet(b: ProtoBooking) {
+  if (b.real && b.meetUrl) window.open(b.meetUrl, "_blank", "noopener");
+  else proto.toast("Prototype: in the real app this opens Google Meet when the session starts.");
 }
 
 export function rescheduleHref(b: ProtoBooking) {
@@ -46,7 +48,7 @@ export function BookingCard({ booking: b, counselor: c, className }: { booking: 
       </span>
       {!canceled && (
         <div className="flex flex-wrap items-center gap-x-1 gap-y-2">
-          <Button onClick={joinMeet} className="text-sm">
+          <Button onClick={() => joinMeet(b)} className="text-sm">
             Join Google Meet
           </Button>
           <Button

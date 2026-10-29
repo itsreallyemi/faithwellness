@@ -165,3 +165,69 @@ export async function freeBusy(accessToken: string, calendarIds: string[], from:
   if (calendars.some((c) => c.errors?.length)) return null;
   return calendars.flatMap((c) => (c.busy ?? []).map((b) => ({ start: new Date(b.start), end: new Date(b.end) })));
 }
+
+const SITE = "https://www.faithwellnesscounseling.com";
+const eventsUrl = (calendarId: string, path = "") =>
+  `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events${path}`;
+
+/**
+ * Writes a booked session to the counselor's chosen calendar: the session itself (titled only
+ * "FaithWellness session", never the client's name or topic) with a Google Meet link and the client invited,
+ * then the opaque 15-minute "Rest" block after it.
+ */
+export async function createSessionEvents(
+  accessToken: string,
+  calendarId: string,
+  { bookingId, start, end, clientEmail }: { bookingId: string; start: Date; end: Date; clientEmail: string },
+) {
+  const headers = { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" };
+  const session = await fetch(`${eventsUrl(calendarId)}?conferenceDataVersion=1&sendUpdates=all`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      summary: "FaithWellness session",
+      description: `A FaithWellness counseling session by video. Join with the Google Meet link.\n\nManage or cancel it at ${SITE}/sessions`,
+      start: { dateTime: start.toISOString() },
+      end: { dateTime: end.toISOString() },
+      attendees: clientEmail ? [{ email: clientEmail }] : [],
+      guestsCanSeeOtherGuests: false,
+      guestsCanInviteOthers: false,
+      visibility: "private",
+      conferenceData: { createRequest: { requestId: bookingId, conferenceSolutionKey: { type: "hangoutsMeet" } } },
+    }),
+  });
+  if (!session.ok) throw new GoogleError(session.status, await session.text());
+  const event = (await session.json()) as {
+    id: string;
+    hangoutLink?: string;
+    conferenceData?: { entryPoints?: { entryPointType: string; uri: string }[] };
+  };
+  const meetUrl = event.hangoutLink ?? event.conferenceData?.entryPoints?.find((p) => p.entryPointType === "video")?.uri ?? "";
+
+  const rest = await fetch(`${eventsUrl(calendarId)}?sendUpdates=none`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      summary: "Rest",
+      description: "15-minute rest after a FaithWellness session.",
+      start: { dateTime: end.toISOString() },
+      end: { dateTime: new Date(end.getTime() + 15 * 60_000).toISOString() },
+      transparency: "opaque",
+      visibility: "private",
+    }),
+  });
+  // The session matters more than the rest block; FaithWellness still keeps the 15 minutes free on its side.
+  const restEventId = rest.ok ? ((await rest.json()) as { id: string }).id : null;
+  return { eventId: event.id, restEventId, meetUrl };
+}
+
+/** Removes a session (Google emails the client) and its rest block. Already-deleted events are fine. */
+export async function deleteSessionEvents(accessToken: string, calendarId: string, eventId: string | null, restEventId: string | null) {
+  const del = (id: string, notify: boolean) =>
+    fetch(eventsUrl(calendarId, `/${encodeURIComponent(id)}?sendUpdates=${notify ? "all" : "none"}`), {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }).then((r) => r.ok || r.status === 404 || r.status === 410);
+  const results = await Promise.all([eventId ? del(eventId, true) : true, restEventId ? del(restEventId, false) : true]);
+  return results.every(Boolean);
+}

@@ -147,7 +147,7 @@ function NextSession({ booking: b, counselor: c, tz }: { booking: ProtoBooking; 
           </div>
         </div>
         <div className="flex flex-col gap-2 md:items-end">
-          <Button size="lg" onClick={joinMeet}>
+          <Button size="lg" onClick={() => joinMeet(b)}>
             <Video size={18} strokeWidth={1.8} aria-hidden="true" />
             Join Google Meet
           </Button>

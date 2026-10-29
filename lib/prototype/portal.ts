@@ -74,8 +74,10 @@ export type PortalSession = {
   /** How the session is paid for, in a few words. */
   payment: string;
   meetUrl: string;
-  /** Set for the prototype client's own bookings, which the counselor can act on. */
+  /** Set for bookings the counselor can act on (the prototype client's, or real ones). */
   bookingId?: string;
+  /** A real booking from the database: canceling goes through the server and Google Calendar. */
+  real?: boolean;
 };
 
 const DAY = 86_400_000;
