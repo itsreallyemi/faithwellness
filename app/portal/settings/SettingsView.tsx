@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { CalendarDays, Lock, Pencil, Plus, Trash2, Video, X } from "lucide-react";
+import { CalendarDays, Check, Lock, Pencil, Plus, Trash2, Video, X } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -687,7 +687,15 @@ function Fees() {
 function FocusAreas() {
   const { counselor, focusAreas, saveFocus } = usePortal();
   const [picked, setPicked] = useState<string[]>(counselor.focusAreas);
+  const [saving, setSaving] = useState(false);
+  // Shown beside the button for a few seconds after a save, as well as the message at the bottom of the screen.
+  const [saved, setSaved] = useState(false);
   const changed = [...picked].sort().join() !== [...counselor.focusAreas].sort().join();
+  useEffect(() => {
+    if (!saved) return;
+    const t = setTimeout(() => setSaved(false), 3000);
+    return () => clearTimeout(t);
+  }, [saved]);
   return (
     <Panel id="focus" title="Focus areas" intro="Choose what you help with. Clients filter the directory by these.">
       <div className="flex flex-wrap gap-2" role="group" aria-label="Focus areas">
@@ -695,16 +703,36 @@ function FocusAreas() {
           <FilterChip
             key={a.slug}
             selected={picked.includes(a.slug)}
-            onChange={(on) => setPicked((p) => (on ? [...p, a.slug] : p.filter((x) => x !== a.slug)))}
+            onChange={(on) => {
+              setSaved(false);
+              setPicked((p) => (on ? [...p, a.slug] : p.filter((x) => x !== a.slug)));
+            }}
           >
             {a.label}
           </FilterChip>
         ))}
       </div>
-      <Button className="self-start" disabled={!changed || picked.length === 0} onClick={() => saveFocus(picked)}>
-        Save focus areas
-      </Button>
-      {picked.length === 0 && <span className="text-sm text-slate-600">Choose at least one.</span>}
+      {picked.length === 0 && (
+        <span className="text-sm text-peach-800">With none chosen, your profile is hidden from the directory.</span>
+      )}
+      <div className="flex flex-wrap items-center gap-3">
+        <Button
+          disabled={!changed || saving}
+          onClick={async () => {
+            setSaving(true);
+            setSaved(await saveFocus(picked));
+            setSaving(false);
+          }}
+        >
+          {saving ? "Saving…" : "Save focus areas"}
+        </Button>
+        {saved && (
+          <span role="status" className="flex items-center gap-1.5 text-sm font-semibold text-sage-700">
+            <Check size={16} strokeWidth={2.4} aria-hidden="true" />
+            Saved
+          </span>
+        )}
+      </div>
     </Panel>
   );
 }

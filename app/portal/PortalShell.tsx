@@ -46,7 +46,8 @@ type Portal = {
   live: boolean;
   missing: GoLiveItem[];
   focusAreas: FocusArea[];
-  saveFocus: (slugs: string[]) => void;
+  /** Resolves true once saved. */
+  saveFocus: (slugs: string[]) => Promise<boolean>;
   serviceTypes: ServiceType[];
   saveServices: (next: ServiceDraft[], travel: TravelDraft) => void;
   /** Service requests waiting for a reply (real counselors). */
@@ -156,12 +157,18 @@ export function PortalShell({
       live: ownLoaded?.live ?? true,
       missing: ownLoaded?.missing ?? [],
       focusAreas,
-      saveFocus: (slugs) => {
-        if (!ownLoaded) return;
-        saveFocusAreas(ownLoaded.id, slugs).then((ok) => {
-          proto.toast(ok ? "Focus areas saved" : "That didn’t save. Please try again.");
-          reload();
-        });
+      saveFocus: async (slugs) => {
+        if (!ownLoaded) return false;
+        const ok = await saveFocusAreas(ownLoaded.id, slugs);
+        proto.toast(
+          !ok
+            ? "That didn’t save. Please try again."
+            : slugs.length
+              ? "Focus areas saved"
+              : "Focus areas saved. Your profile is hidden until you choose at least one.",
+        );
+        reload();
+        return ok;
       },
       newRequests: ownLoaded?.newRequests ?? 0,
       reload,
