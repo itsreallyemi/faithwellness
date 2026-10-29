@@ -34,8 +34,8 @@ create function public.is_admin() returns boolean
 language sql stable security definer set search_path = public as $$
   select exists (select 1 from profiles where id = auth.uid() and role = 'admin');
 $$;
-revoke execute on function public.is_admin() from public, anon;
-grant execute on function public.is_admin() to authenticated;
+-- Visitors need it too: the "counselors: admin read" policy runs it on every directory read (it returns false for them).
+grant execute on function public.is_admin() to anon, authenticated;
 
 create policy "applications: read own or admin" on public.counselor_applications
   for select using (user_id = auth.uid() or public.is_admin());
