@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/Card";
 import { formatFee } from "@/lib/format";
 import { formatSession, formatTime } from "@/lib/prototype/format";
 import { proto, type ProtoBooking } from "@/lib/prototype/store";
+import { GoLiveChecklist } from "./GoLiveChecklist";
 import { usePortal } from "./PortalShell";
 import { clientLocal, dayLabel, PageHeader, Panel, smallButton, when } from "./ui";
 
@@ -28,6 +29,9 @@ export function HomeView() {
         title={`${greeting}, ${counselor.preferredName}`}
         sub={new Date().toLocaleDateString("en-US", { timeZone: tz, weekday: "long", month: "long", day: "numeric" })}
       />
+
+      {/* On phones the sidebar is hidden, so the go-live checklist sits here. */}
+      <GoLiveChecklist className="bg-white! lg:hidden" />
 
       {!settings.google.connected && (
         <Card padding="compact" className="flex flex-col gap-3 border-peach-400! bg-peach-50! sm:flex-row sm:items-center sm:justify-between">

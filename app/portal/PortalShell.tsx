@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { createContext, useContext, useMemo } from "react";
-import { CalendarDays, House, LogOut, MessageCircle, Settings, UserRound } from "lucide-react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { CalendarDays, House, Inbox, LogOut, MessageCircle, Settings, UserRound } from "lucide-react";
 import { ApplicationSummary, useMyApplication } from "@/components/ApplicationProgress";
 import { signOutEverywhere } from "@/components/AuthSync";
 import { useDeviceTimeZone } from "@/components/LocalTime";
 import { PrototypeBanner } from "@/components/prototype/PrototypeBanner";
+import { GoLiveChecklist } from "./GoLiveChecklist";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -16,8 +17,19 @@ import { cn } from "@/lib/cn";
 import { defaultSettings, sampleSessions, type PortalSession, type PortalSettings } from "@/lib/prototype/portal";
 import { agreedFeeCents, proto, useProto, type ProtoBooking, type ProtoState } from "@/lib/prototype/store";
 import { formatFee } from "@/lib/format";
+import { contactEmail } from "@/lib/site";
 import { authEnabled, ownCounselorSlug, useAuthState } from "@/lib/supabase/client";
-import type { Counselor } from "@/lib/types";
+import {
+  loadOwnCounselor,
+  saveFocusAreas,
+  saveServices,
+  saveSettings,
+  type GoLiveItem,
+  type OwnCounselor,
+  type ServiceDraft,
+  type TravelDraft,
+} from "@/lib/supabase/own-counselor";
+import type { Counselor, FocusArea, ServiceType } from "@/lib/types";
 
 type Portal = {
   s: ProtoState;
@@ -28,6 +40,19 @@ type Portal = {
   sessions: PortalSession[];
   /** Messages from the prototype client that the counselor hasn't answered yet. */
   unread: number;
+  /** A real approved counselor (not a prototype sample): profile, fees and hours save to the database. */
+  real: boolean;
+  /** Real counselors: whether they're in the directory, and what's left before they are. */
+  live: boolean;
+  missing: GoLiveItem[];
+  focusAreas: FocusArea[];
+  saveFocus: (slugs: string[]) => void;
+  serviceTypes: ServiceType[];
+  saveServices: (next: ServiceDraft[], travel: TravelDraft) => void;
+  /** Service requests waiting for a reply (real counselors). */
+  newRequests: number;
+  /** Reload the counselor's own profile, checklist and request count. */
+  reload: () => void;
 };
 
 const PortalContext = createContext<Portal | null>(null);
@@ -41,18 +66,58 @@ export function usePortal() {
 const nav = [
   { href: "/portal", label: "Home", icon: House },
   { href: "/portal/sessions", label: "Sessions", icon: CalendarDays },
+  { href: "/portal/requests", label: "Requests", icon: Inbox },
   { href: "/portal/messages", label: "Messages", icon: MessageCircle },
   { href: "/portal/settings", label: "Settings", icon: Settings },
 ];
 
-export function PortalShell({ counselors, children }: { counselors: Counselor[]; children: React.ReactNode }) {
+export function PortalShell({
+  counselors,
+  focusAreas,
+  serviceTypes,
+  children,
+}: {
+  counselors: Counselor[];
+  focusAreas: FocusArea[];
+  serviceTypes: ServiceType[];
+  children: React.ReactNode;
+}) {
   const s = useProto();
   const device = useDeviceTimeZone();
-  const counselor = s?.counselorSlug ? (counselors.find((c) => c.slug === s.counselorSlug) ?? null) : null;
+  const auth = useAuthState();
+
+  // A real counselor's own profile comes from the database, published or not.
+  const realSlug = authEnabled && auth === "signed-in" && ownCounselorSlug && s?.counselorSlug === ownCounselorSlug ? ownCounselorSlug : null;
+  const [own, setOwn] = useState<OwnCounselor | null>(null);
+  // Which slug finished loading (even if it failed), so a failed load falls through to the sign-in screen.
+  const [ownTried, setOwnTried] = useState<string | null>(null);
+  const reload = useCallback(() => {
+    if (!realSlug) return;
+    loadOwnCounselor(realSlug).then((loaded) => {
+      setOwn(loaded);
+      setOwnTried(realSlug);
+    });
+  }, [realSlug]);
+  useEffect(reload, [reload]);
+  const ownLoaded = own?.counselor.slug === realSlug ? own : null;
+
+  const counselor = realSlug
+    ? (ownLoaded?.counselor ?? null)
+    : s?.counselorSlug
+      ? (counselors.find((c) => c.slug === s.counselorSlug) ?? null)
+      : null;
 
   const portal = useMemo<Portal | null>(() => {
     if (!s || !counselor) return null;
-    const settings = s.portal[counselor.slug] ?? defaultSettings(counselor);
+    const stored = s.portal[counselor.slug];
+    // Real counselors: profile, fees and hours come from the database; calendar, notifications and days off
+    // are still prototype and stay in this browser.
+    const settings = ownLoaded
+      ? {
+          ...defaultSettings(counselor),
+          ...(stored && { google: stored.google, notifications: stored.notifications, daysOff: stored.daysOff, canceledSamples: stored.canceledSamples }),
+        }
+      : (stored ?? defaultSettings(counselor));
     const mine = s.bookings.filter((b) => b.slug === counselor.slug);
     const firstId = [...mine].sort((a, b) => a.startIso.localeCompare(b.startIso))[0]?.id;
     const clientName = s.user ? shortName(s.user.name) : "Prototype client";
@@ -76,14 +141,48 @@ export function PortalShell({ counselors, children }: { counselors: Counselor[];
       settings,
       save: (patch, message) => {
         proto.savePortal(counselor.slug, settings, patch);
-        if (message) proto.toast(message);
+        if (!ownLoaded) {
+          if (message) proto.toast(message);
+          return;
+        }
+        saveSettings(ownLoaded.id, patch).then((ok) => {
+          proto.toast(ok ? (message ?? "Saved") : "That didn’t save. Please try again.");
+          reload();
+        });
       },
       sessions: [...sampleSessions(counselor, settings), ...yours].sort((a, b) => a.startIso.localeCompare(b.startIso)),
       unread: thread.slice(lastCounselor + 1).filter((m) => m.from === "client").length,
+      real: Boolean(ownLoaded),
+      live: ownLoaded?.live ?? true,
+      missing: ownLoaded?.missing ?? [],
+      focusAreas,
+      saveFocus: (slugs) => {
+        if (!ownLoaded) return;
+        saveFocusAreas(ownLoaded.id, slugs).then((ok) => {
+          proto.toast(ok ? "Focus areas saved" : "That didn’t save. Please try again.");
+          reload();
+        });
+      },
+      newRequests: ownLoaded?.newRequests ?? 0,
+      reload,
+      serviceTypes,
+      saveServices: (next, travel) => {
+        if (!ownLoaded) return;
+        saveServices(ownLoaded.id, counselor.services, next, travel).then((ok) => {
+          proto.toast(ok ? "Services saved" : "That didn’t save. Please try again.");
+          reload();
+        });
+      },
     };
-  }, [s, counselor, device]);
+  }, [s, counselor, device, ownLoaded, focusAreas, serviceTypes, reload]);
 
-  if (!s) return <div aria-busy="true" className="min-h-dvh bg-cream"><PrototypeBanner /></div>;
+  if (!s || (realSlug && ownTried !== realSlug)) {
+    return (
+      <div aria-busy="true" className="min-h-dvh bg-cream">
+        <PrototypeBanner />
+      </div>
+    );
+  }
   if (!portal)
     return (
       <div className="flex min-h-dvh flex-col bg-cream">
@@ -134,12 +233,12 @@ function useActive() {
 }
 
 function Sidebar() {
-  const { counselor, unread } = usePortal();
+  const { counselor, unread, real, live, newRequests } = usePortal();
   const active = useActive();
   return (
     <nav
       aria-label="Counselor portal"
-      className="sticky top-0 hidden h-dvh w-[264px] flex-none flex-col gap-1.5 border-r border-border-warm bg-white px-5 py-6 lg:flex"
+      className="sticky top-0 hidden h-dvh w-[264px] flex-none flex-col gap-1.5 overflow-y-auto border-r border-border-warm bg-white px-5 py-6 lg:flex"
     >
       <div className="px-2 pb-5">
         <Logo href="/portal" />
@@ -157,15 +256,19 @@ function Sidebar() {
           <Icon size={19} strokeWidth={1.8} aria-hidden="true" />
           <span className="flex-1">{label}</span>
           {label === "Messages" && unread > 0 && <Count n={unread} />}
+          {label === "Requests" && newRequests > 0 && <Count n={newRequests} label="new" />}
         </Link>
       ))}
-      <Link
-        href={`/counselors/${counselor.slug}`}
-        className="flex min-h-11 items-center gap-3 rounded-md px-3.5 text-[15px] text-slate-900! no-underline hover:bg-cream"
-      >
-        <UserRound size={19} strokeWidth={1.8} aria-hidden="true" />
-        Public profile
-      </Link>
+      {(!real || live) && (
+        <Link
+          href={`/counselors/${counselor.slug}`}
+          className="flex min-h-11 items-center gap-3 rounded-md px-3.5 text-[15px] text-slate-900! no-underline hover:bg-cream"
+        >
+          <UserRound size={19} strokeWidth={1.8} aria-hidden="true" />
+          Public profile
+        </Link>
+      )}
+      <GoLiveChecklist className="mt-4" />
       <div className="mt-auto flex items-center gap-3 border-t border-border px-2 pt-4">
         <Avatar name={counselor.name} src={counselor.avatarUrl} tint={counselor.avatarTint} size={40} />
         <div className="flex min-w-0 flex-1 flex-col">
@@ -187,12 +290,12 @@ function Sidebar() {
 }
 
 function BottomTabs() {
-  const { unread } = usePortal();
+  const { unread, newRequests } = usePortal();
   const active = useActive();
   return (
     <nav
       aria-label="Counselor portal"
-      className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-border-warm bg-white pb-[env(safe-area-inset-bottom)] lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-border-warm bg-white pb-[env(safe-area-inset-bottom)] lg:hidden"
     >
       {nav.map(({ href, label, icon: Icon }) => (
         <Link
@@ -211,17 +314,22 @@ function BottomTabs() {
               <Count n={unread} />
             </span>
           )}
+          {label === "Requests" && newRequests > 0 && (
+            <span className="absolute top-2 left-1/2 ml-2">
+              <Count n={newRequests} label="new" />
+            </span>
+          )}
         </Link>
       ))}
     </nav>
   );
 }
 
-function Count({ n }: { n: number }) {
+function Count({ n, label = "unread" }: { n: number; label?: string }) {
   return (
     <span className="rounded-pill bg-peach-500 px-2 py-0.5 text-xs font-bold text-slate-900">
       {n}
-      <span className="sr-only"> unread</span>
+      <span className="sr-only"> {label}</span>
     </span>
   );
 }
@@ -248,8 +356,8 @@ function SignIn({ counselors }: { counselors: Counselor[] }) {
                 </b>
                 {mine.app.status === "approved" && (
                   <span className="text-[15px] text-slate-600">
-                    Setting up your profile, hours and fees here is the next step, and it&rsquo;s nearly ready. We&rsquo;ll
-                    email you as soon as you can start.
+                    We couldn&rsquo;t load your portal just now. Refresh the page, or email{" "}
+                    <a href={`mailto:${contactEmail}`}>{contactEmail}</a> if it keeps happening.
                   </span>
                 )}
               </div>

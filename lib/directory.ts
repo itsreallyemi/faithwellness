@@ -6,6 +6,8 @@ export type SortKey = "soonest" | "experience";
 export type DirectoryFilters = {
   q: string;
   focus: string[];
+  /** Services beyond sessions, by service_types slug (weddings, funerals…). */
+  services: string[];
   denom: string[];
   church: string[];
   sliding: boolean;
@@ -26,6 +28,7 @@ export function parseFilters(params: Params): DirectoryFilters {
   return {
     q: one(params.q).trim(),
     focus: list(params.focus),
+    services: list(params.service),
     denom: list(params.denom),
     church: list(params.church),
     sliding: one(params.sliding) === "1",
@@ -41,6 +44,7 @@ export function filtersToQuery(f: DirectoryFilters) {
   const p = new URLSearchParams();
   if (f.q) p.set("q", f.q);
   if (f.focus.length) p.set("focus", f.focus.join(","));
+  if (f.services.length) p.set("service", f.services.join(","));
   if (f.denom.length) p.set("denom", f.denom.join(","));
   if (f.church.length) p.set("church", f.church.join(","));
   if (f.sliding) p.set("sliding", "1");
@@ -55,6 +59,7 @@ export function filtersToQuery(f: DirectoryFilters) {
 export function activeFilterCount(f: DirectoryFilters) {
   return (
     f.focus.length +
+    f.services.length +
     f.denom.length +
     f.church.length +
     (f.sliding ? 1 : 0) +
@@ -75,6 +80,7 @@ export function filterCounselors(all: Counselor[], f: DirectoryFilters, now = ne
     .filter((c) => {
       if (f.length === 30 ? !c.offers30 : !c.offers60) return false;
       if (f.focus.length && !f.focus.some((s) => c.focusAreas.includes(s))) return false;
+      if (f.services.length && !f.services.some((s) => c.services.some((cs) => cs.slug === s))) return false;
       if (f.denom.length && !f.denom.includes(c.church?.denomination ?? "")) return false;
       if (f.church.length && !f.church.includes(c.church?.slug ?? "")) return false;
       if (f.sliding && !c.slidingScale) return false;
@@ -89,6 +95,8 @@ export function filterCounselors(all: Counselor[], f: DirectoryFilters, now = ne
           c.church?.denomination,
           ...c.focusAreas,
           ...c.helpWith,
+          c.serviceArea,
+          ...c.services.map((s) => s.name),
         ]
           .join(" ")
           .toLowerCase();

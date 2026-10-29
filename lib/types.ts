@@ -30,6 +30,9 @@ export type Counselor = {
   fee60Cents: number;
   offers30: boolean;
   offers60: boolean;
+  /** The counselor chose to offer this length for free (a $0 fee on its own means "not set yet"). */
+  free30: boolean;
+  free60: boolean;
   slidingScale: boolean;
   freeForMembers: boolean;
   feeNote: string | null;
@@ -37,6 +40,34 @@ export type Counselor = {
   avatarTint: string;
   timeZone: string;
   availability: AvailabilityRule[];
+  services: CounselorService[];
+  /** Where they are for in-person services, e.g. "Pasadena, CA". */
+  serviceArea: string;
+  travel: Travel;
+  /** Set when travel is "radius". */
+  travelMiles: number | null;
+  travelFee: TravelFee;
+  travelFeeCents: number;
+};
+
+/** One of the services in public.service_types (weddings, funerals…). */
+export type ServiceType = { slug: string; label: string };
+
+/** How far a counselor goes for in-person services. */
+export type Travel = "none" | "radius" | "anywhere";
+export type TravelFee = "none" | "fixed" | "per_mile" | "ask";
+
+export type ServicePricing = "fixed" | "from" | "honorarium" | "ask";
+
+/** A service a counselor offers beyond sessions. Clients request these rather than booking a time. */
+export type CounselorService = {
+  id: string;
+  /** null for the counselor's own "Other" services. */
+  slug: string | null;
+  name: string;
+  pricing: ServicePricing;
+  priceCents: number;
+  note: string;
 };
 
 export type Duration = 30 | 60;

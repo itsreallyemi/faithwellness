@@ -12,10 +12,12 @@ import {
   type DirectoryFilters,
   type SortKey,
 } from "@/lib/directory";
-import type { FocusArea } from "@/lib/types";
+import type { FocusArea, ServiceType } from "@/lib/types";
 
 type Facets = {
   focusAreas: FocusArea[];
+  /** Only services at least one counselor offers. */
+  services: ServiceType[];
   denominations: { name: string; count: number }[];
   churches: { slug: string; name: string }[];
 };
@@ -34,6 +36,7 @@ const useDirectory = () => useContext(Ctx)!;
 
 const EMPTY: Omit<DirectoryFilters, "q" | "sort"> = {
   focus: [],
+  services: [],
   denom: [],
   church: [],
   sliding: false,
@@ -189,6 +192,18 @@ export function FilterPanel({ inSheet = false }: { inSheet?: boolean }) {
             ))}
         </div>
       </Group>
+
+      {facets.services.length > 0 && (
+        <Group label="Other services">
+          <div className="flex flex-wrap gap-2">
+            {facets.services.map((s) => (
+              <FilterChip key={s.slug} selected={f.services.includes(s.slug)} onChange={() => update({ services: toggle(f.services, s.slug) })}>
+                {s.label}
+              </FilterChip>
+            ))}
+          </div>
+        </Group>
+      )}
 
       <Group label="Denomination">
         <div className="flex flex-col">
@@ -380,6 +395,7 @@ export function ResultsHeader() {
   const id = useId();
   const summary = [
     ...f.focus.map((s) => facets.focusAreas.find((a) => a.slug === s)?.label ?? s),
+    ...f.services.map((s) => facets.services.find((a) => a.slug === s)?.label ?? s),
     ...f.denom,
     ...f.church.map((s) => facets.churches.find((c) => c.slug === s)?.name ?? s),
 

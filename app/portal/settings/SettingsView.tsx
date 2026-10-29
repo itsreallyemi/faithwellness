@@ -1,31 +1,51 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { CalendarDays, Lock, Pencil, Plus, Trash2, Video, X } from "lucide-react";
+import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { FilterChip } from "@/components/ui/FilterChip";
 import { cn } from "@/lib/cn";
 import { clock, QUARTER_HOURS, WEEK_ORDER, WEEKDAYS } from "@/lib/prototype/portal";
 import type { AvailabilityRule } from "@/lib/types";
 import { usePortal } from "../PortalShell";
 import { field, PageHeader, Panel, smallButton } from "../ui";
+import { ServicesSettings } from "./ServicesSettings";
 
-type Tab = "scheduling" | "profile" | "notifications";
+type Tab = "scheduling" | "bio" | "fees" | "services" | "notifications";
 const tabs: { id: Tab; label: string }[] = [
   { id: "scheduling", label: "Scheduling & calendar" },
-  { id: "profile", label: "Profile & fees" },
+  { id: "bio", label: "Bio" },
+  { id: "fees", label: "Fees" },
+  { id: "services", label: "Services" },
   { id: "notifications", label: "Notifications" },
 ];
 
 export function SettingsView() {
-  const [tab, setTab] = useState<Tab>("scheduling");
+  const { real } = usePortal();
+  // Links like /portal/settings?tab=bio#focus (from the go-live checklist) open that tab and scroll to the section.
+  const params = useSearchParams();
+  // "profile" was the old name for the Bio tab.
+  const asked = params.get("tab") === "profile" ? "bio" : params.get("tab");
+  const wanted = tabs.find((t) => t.id === asked)?.id;
+  const [tab, setTab] = useState<Tab>(wanted ?? "scheduling");
+  useEffect(() => {
+    if (wanted) setTab(wanted);
+  }, [wanted, params]);
+  useEffect(() => {
+    const id = window.location.hash.slice(1);
+    if (id) document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [tab, params]);
   return (
     <>
       <PageHeader title="Settings" sub="How clients book you, and when." aside={<TimeZone />} />
       <p className="m-0 rounded-md border border-dashed border-peach-400 bg-peach-50 px-4 py-3 text-sm text-peach-800">
-        Prototype: changes are saved in this browser and used across your portal. Your public profile picks them up once the
-        real database is connected.
+        {real
+          ? "Your profile, focus areas, fees and weekly hours save to your public profile. Google Calendar, days off and notifications are still a preview and stay in this browser."
+          : "Prototype: changes are saved in this browser and used across your portal. Your public profile picks them up once the real database is connected."}
       </p>
       <div role="tablist" aria-label="Settings" className="flex flex-wrap gap-1 border-b border-border-warm">
         {tabs.map((t) => (
@@ -48,13 +68,15 @@ export function SettingsView() {
         <div className="grid items-start gap-6 lg:grid-cols-2">
           <Calendar />
           <div className="flex flex-col gap-6">
-            <SessionTypes />
+            <SessionLengths />
             <WeeklyHours />
             <DaysOff />
           </div>
         </div>
       )}
-      {tab === "profile" && <Profile />}
+      {tab === "bio" && <Profile />}
+      {tab === "fees" && <Fees />}
+      {tab === "services" && <ServicesSettings />}
       {tab === "notifications" && <Notifications />}
     </>
   );
@@ -201,61 +223,43 @@ function Calendar() {
 
 const dollars = (cents: number) => String(Math.round(cents / 100));
 
-function SessionTypes() {
+/** Which session lengths clients can book. Fees are on the Fees tab. */
+function SessionLengths() {
   const { settings, save } = usePortal();
-  const [draft, setDraft] = useState({
-    offers30: settings.offers30,
-    offers60: settings.offers60,
-    fee30: dollars(settings.fee30Cents),
-    fee60: dollars(settings.fee60Cents),
-  });
+  const [draft, setDraft] = useState({ offers30: settings.offers30, offers60: settings.offers60 });
   const [error, setError] = useState("");
+  const changed = draft.offers30 !== settings.offers30 || draft.offers60 !== settings.offers60;
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!draft.offers30 && !draft.offers60) return setError("Offer at least one session length, or clients can’t book you.");
-    const fees = [draft.fee30, draft.fee60].map(Number);
-    if (fees.some((f) => !Number.isFinite(f) || f < 0 || f > 1000)) return setError("Enter fees as whole dollars, from 0 to 1,000.");
     setError("");
-    save(
-      { offers30: draft.offers30, offers60: draft.offers60, fee30Cents: fees[0] * 100, fee60Cents: fees[1] * 100 },
-      "Session types saved",
-    );
+    save(draft, "Session lengths saved");
   };
 
   return (
-    <Panel id="session-types" title="Session types">
+    <Panel id="session-lengths" title="Session lengths">
       <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
         <div className="grid gap-3 sm:grid-cols-2">
           {([30, 60] as const).map((d) => {
-            const offers = d === 30 ? draft.offers30 : draft.offers60;
-            const fee = d === 30 ? draft.fee30 : draft.fee60;
+            const key = d === 30 ? "offers30" : "offers60";
             return (
-              <div key={d} className={cn("flex flex-col gap-2.5 rounded-lg border border-border p-4", !offers && "bg-cream")}>
-                <label className="flex min-h-11 items-center justify-between gap-2">
+              <label
+                key={d}
+                className={cn("flex min-h-16 cursor-pointer items-center justify-between gap-2 rounded-lg border border-border p-4", !draft[key] && "bg-cream")}
+              >
+                <span className="flex flex-col">
                   <b className="text-base">{d} min</b>
-                  <input
-                    type="checkbox"
-                    checked={offers}
-                    onChange={(e) => setDraft({ ...draft, [d === 30 ? "offers30" : "offers60"]: e.target.checked })}
-                    aria-label={`Offer ${d} minute sessions`}
-                    className="size-5 accent-peach-700"
-                  />
-                </label>
-                <label className="flex flex-col gap-1.5 text-[13px] text-slate-600">
-                  Fee
-                  <span className="relative">
-                    <span className="absolute top-1/2 left-4 -translate-y-1/2 text-base text-slate-600">$</span>
-                    <input
-                      inputMode="numeric"
-                      value={fee}
-                      disabled={!offers}
-                      onChange={(e) => setDraft({ ...draft, [d === 30 ? "fee30" : "fee60"]: e.target.value.replace(/[^\d]/g, "") })}
-                      className={`${field} pl-8 text-slate-900 disabled:opacity-60`}
-                    />
-                  </span>
-                </label>
-              </div>
+                  <span className="text-[13px] text-slate-600">{d === 30 ? "Shorter check-in" : "Full session"}</span>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={draft[key]}
+                  onChange={(e) => setDraft({ ...draft, [key]: e.target.checked })}
+                  aria-label={`Offer ${d} minute sessions`}
+                  className="size-5 accent-peach-700"
+                />
+              </label>
             );
           })}
         </div>
@@ -271,8 +275,8 @@ function SessionTypes() {
             {error}
           </p>
         )}
-        <Button type="submit" className="self-start">
-          Save session types
+        <Button type="submit" className="self-start" disabled={!changed}>
+          Save session lengths
         </Button>
       </form>
     </Panel>
@@ -464,8 +468,8 @@ function DaysOff() {
 }
 
 function Profile() {
-  const { counselor, settings, save } = usePortal();
-  const [draft, setDraft] = useState({ title: settings.title, summary: settings.summary, about: settings.about, slidingScale: settings.slidingScale });
+  const { counselor, settings, save, real, live } = usePortal();
+  const [draft, setDraft] = useState({ title: settings.title, summary: settings.summary, about: settings.about });
   const SUMMARY_MAX = 160;
   const tooLong = draft.summary.length > SUMMARY_MAX;
 
@@ -473,13 +477,29 @@ function Profile() {
     <div className="grid items-start gap-6 lg:grid-cols-[1.5fr_1fr]">
       <Panel
         id="profile"
-        title="Your profile"
+        title="Your bio"
         action={
-          <Link href={`/counselors/${counselor.slug}`} className="text-sm font-semibold">
-            View public profile
-          </Link>
+          live && (
+            <Link href={`/counselors/${counselor.slug}`} className="text-sm font-semibold">
+              View public profile
+            </Link>
+          )
         }
       >
+        {real && (
+          <div id="photo" className="flex scroll-mt-6 items-center gap-4 rounded-md bg-cream p-4">
+            <Avatar name={counselor.name} src={counselor.avatarUrl} tint={counselor.avatarTint} size={64} />
+            <div className="flex flex-col gap-0.5 text-sm">
+              <b className="text-[15px]">Photo</b>
+              <span className="text-slate-600">
+                {counselor.avatarUrl ? "Shown on your profile and card. " : "Optional. Without one, your initials show instead. "}
+                <Link href="/account" className="font-semibold">
+                  {counselor.avatarUrl ? "Change it on your account page" : "Add one on your account page"}
+                </Link>
+              </span>
+            </div>
+          </div>
+        )}
         <form
           className="flex flex-col gap-4"
           onSubmit={(e) => {
@@ -528,21 +548,113 @@ function Profile() {
       </Panel>
 
       <div className="flex flex-col gap-6">
-        <Panel id="fees" title="Fees" intro="Clients see your fee only when they book, never in the directory.">
-          <p className="m-0 text-[15px]">
-            {settings.offers30 && <>30 min: <b>${dollars(settings.fee30Cents)}</b></>}
-            {settings.offers30 && settings.offers60 && " · "}
-            {settings.offers60 && <>60 min: <b>${dollars(settings.fee60Cents)}</b></>}
-          </p>
-          <span className="text-sm text-slate-600">Change fees and session lengths under Scheduling &amp; calendar.</span>
+        {real && <FocusAreas />}
+      </div>
+    </div>
+  );
+}
+
+/** Session fees, sliding scale and insurance. Which lengths are offered is set under Scheduling. */
+function Fees() {
+  const { counselor, settings, save } = usePortal();
+  const [fees, setFees] = useState({ 30: dollars(settings.fee30Cents), 60: dollars(settings.fee60Cents) });
+  const [free, setFree] = useState({ 30: settings.free30, 60: settings.free60 });
+  const [error, setError] = useState("");
+  const offered = { 30: settings.offers30, 60: settings.offers60 };
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const missing = ([30, 60] as const).filter((d) => offered[d] && !free[d] && !(Number(fees[d]) > 0));
+    if (missing.length) return setError(`Add a fee for ${missing.map((d) => `${d}-minute`).join(" and ")} sessions, or choose Free.`);
+    if ([fees[30], fees[60]].some((f) => Number(f) > 1000)) return setError("Fees can be up to $1,000.");
+    setError("");
+    save(
+      {
+        free30: free[30],
+        free60: free[60],
+        fee30Cents: free[30] ? 0 : (Number(fees[30]) || 0) * 100,
+        fee60Cents: free[60] ? 0 : (Number(fees[60]) || 0) * 100,
+      },
+      "Fees saved",
+    );
+  };
+
+  return (
+    <div className="grid items-start gap-6 lg:grid-cols-2">
+      <Panel id="fees" title="Session fees" intro="Clients see your fee only when they book, never in the directory.">
+        <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {([30, 60] as const).map((d) => (
+              <fieldset key={d} className={cn("m-0 flex flex-col gap-2.5 rounded-lg border border-border p-4", !offered[d] && "bg-cream")}>
+                <legend className="sr-only">{d}-minute sessions</legend>
+                <b className="text-base" aria-hidden="true">
+                  {d} min
+                </b>
+                {offered[d] ? (
+                  <>
+                    <div role="radiogroup" aria-label={`${d}-minute sessions`} className="grid grid-cols-2 rounded-pill bg-cream-200 p-1">
+                      {([false, true] as const).map((isFree) => (
+                        <button
+                          key={String(isFree)}
+                          type="button"
+                          role="radio"
+                          aria-checked={free[d] === isFree}
+                          onClick={() => {
+                            setFree({ ...free, [d]: isFree });
+                            setError("");
+                          }}
+                          className={cn(
+                            "min-h-10 cursor-pointer rounded-pill text-sm",
+                            free[d] === isFree && "bg-white font-semibold shadow-[0_1px_3px_rgba(45,55,72,.12)]",
+                          )}
+                        >
+                          {isFree ? "Free" : "Fee"}
+                        </button>
+                      ))}
+                    </div>
+                    {free[d] ? (
+                      <span className="text-[13px] text-slate-600">Clients book this session at no cost.</span>
+                    ) : (
+                      <span className="relative">
+                        <span className="absolute top-1/2 left-4 -translate-y-1/2 text-base text-slate-600">$</span>
+                        <input
+                          inputMode="numeric"
+                          value={fees[d]}
+                          onChange={(e) => {
+                            setFees({ ...fees, [d]: e.target.value.replace(/[^\d]/g, "") });
+                            setError("");
+                          }}
+                          aria-label={`Fee for ${d} minute sessions`}
+                          className={`${field} pl-8 text-slate-900`}
+                        />
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <span className="text-[13px] text-slate-600">
+                    Not offered. Turn it on under <span className="font-semibold">Scheduling &amp; calendar</span>.
+                  </span>
+                )}
+              </fieldset>
+            ))}
+          </div>
+          {error && (
+            <p role="alert" className="m-0 text-sm text-peach-800">
+              {error}
+            </p>
+          )}
+          <Button type="submit" className="self-start">
+            Save fees
+          </Button>
+        </form>
+      </Panel>
+      <div className="flex flex-col gap-6">
+        <Panel id="sliding-scale" title="Sliding scale">
           <label className="flex items-start gap-3 rounded-md bg-cream p-4">
             <input
               type="checkbox"
-              checked={draft.slidingScale}
-              onChange={(e) => {
-                setDraft({ ...draft, slidingScale: e.target.checked });
-                save({ slidingScale: e.target.checked }, e.target.checked ? "Sliding scale on" : "Sliding scale off");
-              }}
+              checked={settings.slidingScale}
+              onChange={(e) => save({ slidingScale: e.target.checked }, e.target.checked ? "Sliding scale on" : "Sliding scale off")}
               className="mt-0.5 size-5 flex-none accent-peach-700"
             />
             <span className="flex flex-col gap-0.5">
@@ -568,6 +680,32 @@ function Profile() {
         )}
       </div>
     </div>
+  );
+}
+
+/** What clients can filter the directory by. Real counselors only; samples keep their seeded areas. */
+function FocusAreas() {
+  const { counselor, focusAreas, saveFocus } = usePortal();
+  const [picked, setPicked] = useState<string[]>(counselor.focusAreas);
+  const changed = [...picked].sort().join() !== [...counselor.focusAreas].sort().join();
+  return (
+    <Panel id="focus" title="Focus areas" intro="Choose what you help with. Clients filter the directory by these.">
+      <div className="flex flex-wrap gap-2" role="group" aria-label="Focus areas">
+        {focusAreas.map((a) => (
+          <FilterChip
+            key={a.slug}
+            selected={picked.includes(a.slug)}
+            onChange={(on) => setPicked((p) => (on ? [...p, a.slug] : p.filter((x) => x !== a.slug)))}
+          >
+            {a.label}
+          </FilterChip>
+        ))}
+      </div>
+      <Button className="self-start" disabled={!changed || picked.length === 0} onClick={() => saveFocus(picked)}>
+        Save focus areas
+      </Button>
+      {picked.length === 0 && <span className="text-sm text-slate-600">Choose at least one.</span>}
+    </Panel>
   );
 }
 

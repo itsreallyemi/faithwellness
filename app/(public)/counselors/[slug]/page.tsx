@@ -11,6 +11,8 @@ import { CrisisNotice } from "@/components/ui/CrisisNotice";
 import { getCounselor, getFocusAreas } from "@/lib/counselors";
 import { cn } from "@/lib/cn";
 import { BookingPanel } from "./BookingPanel";
+import { ServicesSection } from "./ServicesSection";
+import { travelSummary } from "@/lib/services";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -163,6 +165,8 @@ export default async function ProfilePage({ params, searchParams }: Props) {
               </ul>
             </div>
           </Card>
+
+          <ServicesSection slug={c.slug} preferredName={c.preferredName} services={c.services} travel={travelSummary(c)} serviceArea={c.serviceArea} />
 
           <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,300px),1fr))] gap-6 md:gap-7">
             {c.credentials.length > 0 && (

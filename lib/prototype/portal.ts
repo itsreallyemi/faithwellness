@@ -27,6 +27,8 @@ export type PortalSettings = {
   offers60: boolean;
   fee30Cents: number;
   fee60Cents: number;
+  free30: boolean;
+  free60: boolean;
   slidingScale: boolean;
   hours: AvailabilityRule[];
   /** "YYYY-MM-DD" dates in the counselor's time zone. */
@@ -50,6 +52,8 @@ export function defaultSettings(c: Counselor): PortalSettings {
     offers60: c.offers60,
     fee30Cents: c.fee30Cents,
     fee60Cents: c.fee60Cents,
+    free30: c.free30,
+    free60: c.free60,
     slidingScale: c.slidingScale,
     hours: c.availability,
     daysOff: [],

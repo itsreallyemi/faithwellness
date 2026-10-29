@@ -10,7 +10,7 @@ import {
   SearchBar,
 } from "@/components/directory/DirectoryControls";
 import { CrisisNotice } from "@/components/ui/CrisisNotice";
-import { getCounselors, getFocusAreas } from "@/lib/counselors";
+import { getCounselors, getFocusAreas, getServiceTypes } from "@/lib/counselors";
 import { denominationCounts, filterCounselors, parseFilters } from "@/lib/directory";
 
 export const metadata: Metadata = {
@@ -22,7 +22,8 @@ export const metadata: Metadata = {
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
 export default async function DirectoryPage({ searchParams }: { searchParams: SearchParams }) {
-  const [all, focusAreas, params] = await Promise.all([getCounselors(), getFocusAreas(), searchParams]);
+  const [all, focusAreas, serviceTypes, params] = await Promise.all([getCounselors(), getFocusAreas(), getServiceTypes(), searchParams]);
+  const offered = serviceTypes.filter((t) => all.some((c) => c.services.some((s) => s.slug === t.slug)));
   const filters = parseFilters(params);
   const results = filterCounselors(all, filters);
   const focusLabels = Object.fromEntries(focusAreas.map((a) => [a.slug, a.label]));
@@ -34,7 +35,7 @@ export default async function DirectoryPage({ searchParams }: { searchParams: Se
     <DirectoryProvider
       filters={filters}
       resultCount={results.length}
-      facets={{ focusAreas, denominations: denominationCounts(all), churches }}
+      facets={{ focusAreas, services: offered, denominations: denominationCounts(all), churches }}
     >
       <header className="mx-auto flex max-w-[1280px] flex-col gap-3.5 px-4 pt-6 pb-4 md:gap-5 md:px-8 md:pt-14 md:pb-10">
         <h1 className="m-0 max-w-[820px] font-display text-[34px] leading-[1.08] tracking-[-0.01em] md:text-[clamp(36px,4.4vw,60px)] md:leading-[1.05]">

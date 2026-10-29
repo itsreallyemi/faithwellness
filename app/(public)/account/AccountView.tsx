@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CalendarDays, ChevronRight, Eye, EyeOff, MessageCircle, Trash2 } from "lucide-react";
 import { ApplicationSummary, useMyApplication } from "@/components/ApplicationProgress";
 import { useDeviceTimeZone, useViewerTimeZone } from "@/components/LocalTime";
@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { intakeRows } from "@/lib/prototype/intake";
 import { formatSession } from "@/lib/prototype/format";
+import { requestStatusLabel, requestWhen, type ServiceRequest } from "@/lib/services";
 import { isUpForRenewal, membershipStatus, proto, type ProtoState, type ProtoUser } from "@/lib/prototype/store";
 import { authEnabled, supabaseBrowser, useAccountKind, useOwnAvatar } from "@/lib/supabase/client";
 import { removeProfilePhoto, uploadProfilePhoto } from "@/lib/supabase/photo";
@@ -41,6 +42,7 @@ function Account({ s }: { s: SignedIn }) {
 
       <Details user={s.user} />
       <CounselorApplication />
+      {authEnabled && <YourRequests />}
       <Sessions s={s} />
       <Memberships s={s} />
       {isClient && <Answers s={s} />}
@@ -114,6 +116,71 @@ function PhotoControls({ hasPhoto }: { hasPhoto: boolean }) {
         </p>
       )}
     </div>
+  );
+}
+
+// Service requests -----------------------------------------------------------------
+
+type MyRequest = ServiceRequest & { counselor: { preferred_name: string; slug: string } | null };
+
+/** Weddings, funerals and other services they've requested. Only shown once they've sent one. */
+function YourRequests() {
+  const [requests, setRequests] = useState<MyRequest[] | null>(null);
+  useEffect(() => {
+    (async () => {
+      const sb = supabaseBrowser();
+      const { data: me } = await sb.auth.getUser();
+      const { data } = await sb
+        .from("service_requests")
+        .select("*, counselor:counselors(preferred_name, slug)")
+        .eq("client_id", me.user?.id ?? "")
+        .order("created_at", { ascending: false });
+      setRequests((data as MyRequest[] | null) ?? []);
+    })();
+  }, []);
+  if (!requests?.length) return null;
+
+  const withdraw = async (r: MyRequest) => {
+    const { data, error } = await supabaseBrowser().rpc("withdraw_service_request", { p_id: r.id }).single();
+    if (error) return proto.toast("That didn’t work. Please try again.");
+    setRequests((list) => list?.map((x) => (x.id === r.id ? { ...x, ...(data as ServiceRequest) } : x)) ?? null);
+    proto.toast("Request withdrawn");
+  };
+
+  return (
+    <Section id="requests" title="Your requests">
+      <ul className="m-0 flex list-none flex-col gap-4 p-0">
+        {requests.map((r) => (
+          <li key={r.id} className="flex flex-col gap-2 border-t border-divider pt-4 first:border-t-0 first:pt-0">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <span className="flex flex-col gap-0.5">
+                <b className="text-[15px]">{r.service_name}</b>
+                <span className="text-sm text-slate-600">
+                  {r.counselor ? (
+                    <Link href={`/counselors/${r.counselor.slug}`}>{r.counselor.preferred_name}</Link>
+                  ) : (
+                    "Counselor"
+                  )}{" "}
+                  · {requestWhen(r)}
+                </span>
+              </span>
+              <Badge variant={r.status === "accepted" ? "credential" : r.status === "new" ? "accent" : "tag"}>{requestStatusLabel[r.status]}</Badge>
+            </div>
+            {r.counselor_reply && (
+              <p className="m-0 rounded-md bg-cream px-4 py-3 text-[15px] whitespace-pre-line">
+                <span className="block text-[13px] font-semibold text-slate-600">{r.counselor?.preferred_name ?? "Their"} reply</span>
+                {r.counselor_reply}
+              </p>
+            )}
+            {(r.status === "new" || r.status === "accepted") && (
+              <button type="button" onClick={() => withdraw(r)} className="min-h-11 cursor-pointer self-start text-sm font-semibold text-slate-600">
+                Withdraw request
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
+    </Section>
   );
 }
 

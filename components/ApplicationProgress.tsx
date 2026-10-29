@@ -61,7 +61,7 @@ export function ApplicationTracker({ app, live }: MyApplication & { app: Applica
     { title: "Approved", detail: approved ? "Your counselor portal is open." : "", state: approved ? "done" : "upcoming" },
     {
       title: "Set up your profile",
-      detail: approved && !live ? "Add your photo, bio, hours and fees in your portal." : "",
+      detail: approved && !live ? "Add your bio, focus areas, fees and hours in your portal." : "",
       state: live ? "done" : approved ? "current" : "upcoming",
     },
     { title: "Live on FaithWellness", detail: live ? "Clients can find and book you." : "", state: live ? "done" : "upcoming" },
