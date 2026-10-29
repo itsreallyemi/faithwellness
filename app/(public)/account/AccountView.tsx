@@ -15,7 +15,8 @@ import { Card } from "@/components/ui/Card";
 import { intakeRows } from "@/lib/prototype/intake";
 import { formatSession } from "@/lib/prototype/format";
 import { isUpForRenewal, membershipStatus, proto, type ProtoState, type ProtoUser } from "@/lib/prototype/store";
-import { authEnabled, supabaseBrowser, useAccountKind } from "@/lib/supabase/client";
+import { authEnabled, supabaseBrowser, useAccountKind, useOwnAvatar } from "@/lib/supabase/client";
+import { removeProfilePhoto, uploadProfilePhoto } from "@/lib/supabase/photo";
 import { zoneCity } from "@/lib/time";
 
 type SignedIn = ProtoState & { user: ProtoUser };
@@ -26,13 +27,15 @@ export function AccountView() {
 
 function Account({ s }: { s: SignedIn }) {
   const isClient = useAccountKind() === "client";
+  const avatar = useOwnAvatar();
   return (
     <div className="flex flex-col gap-6">
       <header className="flex items-center gap-4">
-        <Avatar name={s.user.name} size={72} tint="#F3EEE6" />
-        <div className="flex min-w-0 flex-col">
+        <Avatar name={s.user.name} src={avatar} size={88} tint="#F3EEE6" />
+        <div className="flex min-w-0 flex-col gap-1">
           <h1 className="m-0 font-display text-[32px] leading-[1.1] md:text-[40px]">{s.user.name}</h1>
           <span className="truncate text-slate-600">{s.user.email}</span>
+          {authEnabled && <PhotoControls hasPhoto={Boolean(avatar)} />}
         </div>
       </header>
 
@@ -61,6 +64,58 @@ function Section({ id, title, action, children }: { id: string; title: string; a
 }
 
 const field = "min-h-12 w-full rounded-md border border-border bg-cream px-4 text-base aria-invalid:border-peach-700";
+
+// Photo ------------------------------------------------------------------------------
+
+/** Counselors' photo here is also the one on their public profile. */
+function PhotoControls({ hasPhoto }: { hasPhoto: boolean }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const run = async (task: () => Promise<string | null>, done: string) => {
+    setBusy(true);
+    setError("");
+    const problem = await task();
+    setBusy(false);
+    if (problem) setError(problem);
+    else proto.toast(done);
+  };
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="flex flex-wrap items-center gap-x-4">
+        <label
+          className={`inline-flex min-h-11 cursor-pointer items-center text-sm font-semibold text-peach-700 focus-within:underline ${busy ? "opacity-60" : ""}`}
+        >
+          {busy ? "Saving…" : hasPhoto ? "Change photo" : "Add a photo"}
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/heic"
+            className="sr-only"
+            disabled={busy}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              e.target.value = "";
+              if (file) run(() => uploadProfilePhoto(file), hasPhoto ? "Photo updated." : "Photo added.");
+            }}
+          />
+        </label>
+        {hasPhoto && !busy && (
+          <button
+            type="button"
+            onClick={() => run(removeProfilePhoto, "Photo removed.")}
+            className="min-h-11 cursor-pointer text-sm font-semibold text-slate-600"
+          >
+            Remove
+          </button>
+        )}
+      </div>
+      {error && (
+        <p role="alert" className="m-0 text-sm text-peach-700">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
 
 // Counselor application ---------------------------------------------------------
 

@@ -2,7 +2,7 @@
 
 import type { Session } from "@supabase/supabase-js";
 import { useEffect } from "react";
-import { authEnabled, setAccountKind, setAuthState, setOwnCounselorSlug, supabaseBrowser } from "@/lib/supabase/client";
+import { authEnabled, setAccountKind, setAuthState, setOwnAvatar, setOwnCounselorSlug, supabaseBrowser } from "@/lib/supabase/client";
 import { proto } from "@/lib/prototype/store";
 
 /**
@@ -20,6 +20,7 @@ export function AuthSync() {
       if (!alive) return;
       if (!session) {
         setOwnCounselorSlug(null);
+        setOwnAvatar(null);
         setAccountKind("client");
         if (proto.snapshot().user) {
           proto.signOut();
@@ -30,8 +31,9 @@ export function AuthSync() {
       }
 
       const { id, email = "" } = session.user;
-      const { data: profile } = await sb.from("profiles").select("full_name, role").eq("id", id).maybeSingle();
+      const { data: profile } = await sb.from("profiles").select("full_name, role, avatar_url").eq("id", id).maybeSingle();
       const name = profile?.full_name?.trim() ?? "";
+      setOwnAvatar(profile?.avatar_url ?? null);
       const current = proto.snapshot().user;
       // A new account has no name yet. /sign-in asks for it before they continue.
       if (name && (current?.email !== email || current.name !== name)) {
@@ -74,5 +76,6 @@ export async function signOutEverywhere() {
   if (authEnabled) await supabaseBrowser().auth.signOut();
   setOwnCounselorSlug(null);
   setAccountKind("client");
+  setOwnAvatar(null);
   proto.signOut();
 }

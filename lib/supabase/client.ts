@@ -73,3 +73,24 @@ export function useAccountKind() {
     () => "client" as AccountKind,
   );
 }
+
+/** The signed-in person's profile photo (profiles.avatar_url), for the header and account page. */
+let ownAvatar: string | null = null;
+const avatarListeners = new Set<() => void>();
+
+export function setOwnAvatar(url: string | null) {
+  if (url === ownAvatar) return;
+  ownAvatar = url;
+  avatarListeners.forEach((l) => l());
+}
+
+export function useOwnAvatar() {
+  return useSyncExternalStore(
+    (l) => {
+      avatarListeners.add(l);
+      return () => avatarListeners.delete(l);
+    },
+    () => ownAvatar,
+    () => null,
+  );
+}

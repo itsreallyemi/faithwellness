@@ -11,7 +11,7 @@ import { initialsFor } from "@/components/ui/Avatar";
 import { Logo } from "@/components/ui/Logo";
 import { cn } from "@/lib/cn";
 import { membershipStatus, useProto } from "@/lib/prototype/store";
-import { useAccountKind } from "@/lib/supabase/client";
+import { useAccountKind, useOwnAvatar } from "@/lib/supabase/client";
 
 type NavLink = { href: string; label: string; match: (p: string) => boolean };
 
@@ -36,8 +36,12 @@ export function SiteHeader() {
   const router = useRouter();
   const s = useProto();
   const user = s?.user ?? null;
+  const kind = useAccountKind();
+  const avatar = useOwnAvatar();
   // "Your answers and matches" is for clients only.
-  const isClient = useAccountKind() === "client";
+  const isClient = kind === "client";
+  // Counselors (and applicants) get a way back to their portal; FaithWellness staff to admin.
+  const workspace = kind === "provider" ? { href: "/portal", label: "Counselor portal" } : kind === "staff" ? { href: "/admin", label: "Admin" } : null;
   const [open, setOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const accountRef = useRef<HTMLDivElement>(null);
@@ -84,55 +88,75 @@ export function SiteHeader() {
 
         <div className="ml-auto hidden items-center gap-3 md:flex">
           {user ? (
-            <div ref={accountRef} className="relative">
-              <button
-                type="button"
-                aria-expanded={accountOpen}
-                aria-label={`Your account (${user.name})`}
-                onClick={() => setAccountOpen((o) => !o)}
-                className="flex size-11 cursor-pointer items-center justify-center rounded-md bg-cream-200 text-sm font-bold"
-              >
-                {initialsFor(user.name)}
-              </button>
-              {accountOpen && (
-                <div className="absolute top-full right-0 z-20 mt-2 w-64 rounded-lg border border-border-warm bg-white p-2 shadow-raised">
-                  <div className="flex flex-col gap-2 px-3 py-2">
-                    <span>
-                      <b className="block text-[15px]">{user.name}</b>
-                      <span className="text-[13px] text-slate-600">{user.email}</span>
-                    </span>
-                    {s?.memberships.filter((m) => membershipStatus(m) === "verified").map((m) => <MemberBadge key={m.churchSlug} churchName={m.churchName} className="self-start" />)}
-                  </div>
-                  <Link
-                    href="/account"
-                    className="flex min-h-11 w-full items-center rounded-sm px-3 text-[15px] font-semibold text-slate-900! no-underline hover:bg-cream"
-                  >
-                    Your profile
-                  </Link>
-                  <Link
-                    href="/membership"
-                    className="flex min-h-11 w-full items-center rounded-sm px-3 text-[15px] text-slate-900! no-underline hover:bg-cream"
-                  >
-                    Church memberships
-                  </Link>
-                  {isClient && (
+            <>
+              {workspace && (
+                <Button variant="secondary" href={workspace.href}>
+                  {workspace.label}
+                </Button>
+              )}
+              <div ref={accountRef} className="relative">
+                <button
+                  type="button"
+                  aria-expanded={accountOpen}
+                  aria-label={`Your account (${user.name})`}
+                  onClick={() => setAccountOpen((o) => !o)}
+                  className="flex size-11 cursor-pointer items-center justify-center overflow-hidden rounded-md bg-cream-200 text-sm font-bold"
+                >
+                  {avatar ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={avatar} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    initialsFor(user.name)
+                  )}
+                </button>
+                {accountOpen && (
+                  <div className="absolute top-full right-0 z-20 mt-2 w-64 rounded-lg border border-border-warm bg-white p-2 shadow-raised">
+                    <div className="flex flex-col gap-2 px-3 py-2">
+                      <span>
+                        <b className="block text-[15px]">{user.name}</b>
+                        <span className="text-[13px] text-slate-600">{user.email}</span>
+                      </span>
+                      {s?.memberships.filter((m) => membershipStatus(m) === "verified").map((m) => <MemberBadge key={m.churchSlug} churchName={m.churchName} className="self-start" />)}
+                    </div>
+                    {workspace && (
+                      <Link
+                        href={workspace.href}
+                        className="flex min-h-11 w-full items-center rounded-sm px-3 text-[15px] font-semibold text-slate-900! no-underline hover:bg-cream"
+                      >
+                        {workspace.label}
+                      </Link>
+                    )}
                     <Link
-                      href="/get-started"
+                      href="/account"
+                      className="flex min-h-11 w-full items-center rounded-sm px-3 text-[15px] font-semibold text-slate-900! no-underline hover:bg-cream"
+                    >
+                      Your profile
+                    </Link>
+                    <Link
+                      href="/membership"
                       className="flex min-h-11 w-full items-center rounded-sm px-3 text-[15px] text-slate-900! no-underline hover:bg-cream"
                     >
-                      Your answers and matches
+                      Church memberships
                     </Link>
-                  )}
-                  <button
-                    type="button"
-                    onClick={signOut}
-                    className="flex min-h-11 w-full cursor-pointer items-center rounded-sm px-3 text-left text-[15px] hover:bg-cream"
-                  >
-                    Sign out
-                  </button>
-                </div>
-              )}
-            </div>
+                    {isClient && (
+                      <Link
+                        href="/get-started"
+                        className="flex min-h-11 w-full items-center rounded-sm px-3 text-[15px] text-slate-900! no-underline hover:bg-cream"
+                      >
+                        Your answers and matches
+                      </Link>
+                    )}
+                    <button
+                      type="button"
+                      onClick={signOut}
+                      className="flex min-h-11 w-full cursor-pointer items-center rounded-sm px-3 text-left text-[15px] hover:bg-cream"
+                    >
+                      Sign out
+                    </button>
+                  </div>
+                )}
+              </div>
+            </>
           ) : (
             <>
               <Link href="/sign-in" className="inline-flex min-h-11 items-center px-2 font-semibold text-slate-900! no-underline">
@@ -173,6 +197,7 @@ export function SiteHeader() {
               ...links,
               ...(user
                 ? [
+                    ...(workspace ? [{ ...workspace, match: (p: string) => p.startsWith(workspace.href) }] : []),
                     { href: "/account", label: "Your profile", match: (p: string) => p.startsWith("/account") },
                     { href: "/membership", label: "Church memberships", match: (p: string) => p.startsWith("/membership") },
                     ...(isClient
