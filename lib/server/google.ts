@@ -150,3 +150,18 @@ export async function disconnect(counselorId: string) {
   }
   await db.from("integrations").delete().eq("counselor_id", counselorId);
 }
+
+/** Busy blocks across the given calendars. Returns null if Google can't be reached, so callers can say so. */
+export async function freeBusy(accessToken: string, calendarIds: string[], from: Date, to: Date) {
+  const res = await fetch("https://www.googleapis.com/calendar/v3/freeBusy", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ timeMin: from.toISOString(), timeMax: to.toISOString(), items: calendarIds.map((id) => ({ id })) }),
+  });
+  if (!res.ok) return null;
+  const data = (await res.json()) as { calendars?: Record<string, { busy?: { start: string; end: string }[]; errors?: unknown[] }> };
+  const calendars = Object.values(data.calendars ?? {});
+  // A calendar Google couldn't read means we can't promise the time is free.
+  if (calendars.some((c) => c.errors?.length)) return null;
+  return calendars.flatMap((c) => (c.busy ?? []).map((b) => ({ start: new Date(b.start), end: new Date(b.end) })));
+}

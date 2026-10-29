@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "seed:sql": "node scripts/generate-seed.mjs"
+    "seed:sql": "node scripts/generate-seed.mjs",
+    "test": "node --test lib/*.test.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

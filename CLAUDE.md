@@ -55,7 +55,7 @@ Encrypt OAuth tokens at rest (pgsodium / Supabase Vault or app-level AES-GCM). A
 
 - Sessions are 30 or 60 min. **A 15-minute rest buffer after every session is mandatory and cannot be disabled.**
 - Enforced in two places: server-side filtering of the counselor's weekly hours against Google freeBusy (when listing times and again when booking), and an opaque "Rest" event written to Google Calendar after each booking.
-- Slot valid ⇔ no busy block `b` where `b.start < slot.end + 15m && b.end + 15m > slot.start`. Starts snap to :00/:15/:30/:45.
+- Slot valid ⇔ no busy block `b` where `b.start < slot.end + 15m && b.end + 15m > slot.start`. Starts snap to :00/:30.
 - On booking: re-check freeBusy and existing bookings in one transaction → insert booking → create Google event with Meet (`conferenceDataVersion=1`) + rest block → post confirmation into the message thread + email.
 
 ## Privacy

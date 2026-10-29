@@ -18,7 +18,7 @@ Weekly hours, session lengths (30/60), fees and time off are set in `/portal/set
 
 1. Client picks a length on the profile. Browser time zone from `Intl.DateTimeFormat().resolvedOptions().timeZone`.
 2. Web → API: `GET /api/availability?counselor={id}&duration=60&tz=Asia/Tokyo&from=…`
-3. API builds candidate starts from the counselor's weekly hours (in the counselor's IANA zone), on a 15-minute grid, minus time off.
+3. API builds candidate starts from the counselor's weekly hours (in the counselor's IANA zone), on a 30-minute grid (:00 and :30), minus time off.
 4. API → Google: `POST /calendar/v3/freeBusy` for every checked calendar.
 5. API merges: pad every busy block by 15 min, drop overlapping candidates, convert UTC → client TZ. Returns `[{start, end}]`.
 6. Web shows slots; client confirms on `/book/[slug]`.
@@ -36,7 +36,7 @@ valid(slot) ⇔ no busy b where
   b.start < slot.end + 15m  &&  b.end + 15m > slot.start
 ```
 
-Example: 9:00–10:00 session → rest 10:00–10:15 → earliest next start 10:15.
+Example: 9:00–10:00 session → rest 10:00–10:15 → earliest next start 10:15, which the 30-minute grid offers as 10:30.
 
 Two layers: the server filter (availability and the booking-time re-check), and the Google "Rest" block (protects against bookings the counselor makes outside FaithWellness).
 
@@ -52,9 +52,9 @@ Two layers: the server filter (availability and the booking-time re-check), and 
 
 - Outlook / Microsoft 365 calendars through Microsoft Graph (`/me/calendar/getSchedule`, `/me/events` with Teams link) — same shape as Google.
 
-## Tests to write first (`lib/availability.test.ts`)
+## Tests (`lib/availability.test.ts`, run with `npm test`)
 
-- 60-min busy 9:00–10:00 blocks 9:45 and 10:00 starts; allows 10:15.
+- 60-min busy 9:00–10:00 blocks the 10:00 start; the next open start is 10:30 (starts are on :00 and :30).
 - 30-min slot squeezed between two sessions with < 15 min either side is rejected.
 - Slots outside weekly hours, or during time off, are never offered.
 - Slots convert correctly across a DST change (e.g. US clocks back on Nov 1, 2026).

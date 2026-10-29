@@ -10,7 +10,6 @@ import { memberCareChurch } from "@/lib/prototype/member-care";
 import { membershipStatus, useIsMemberOf, useMembership } from "@/lib/prototype/store";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
-import { sampleSlots } from "@/lib/sample-slots";
 import { zoneCity, zonedDate } from "@/lib/time";
 import type { AvailabilityRule, Duration } from "@/lib/types";
 
@@ -48,20 +47,40 @@ export function BookingPanel(p: BookingPanelProps) {
   // Prices stay private; the counselor shares their fee with the client directly.
   const feeLabel = member ? <span className="font-semibold text-sage-700">Free for members</span> : "Fee shared privately";
 
-  // Slots depend on "now", so compute them only in the browser to avoid hydration mismatches.
-  const [now, setNow] = useState<Date | null>(null);
-  useEffect(() => setNow(new Date()), []);
+  // Open times come from the server: weekly hours minus Google Calendar busy times (see /api/availability).
+  // null while loading. "unavailable" means Google couldn't confirm their calendar, so nothing is offered.
+  const [slots, setSlots] = useState<Date[] | null>(null);
+  const [unavailable, setUnavailable] = useState(false);
+  useEffect(() => {
+    let current = true;
+    setSlots(null);
+    fetch(`/api/availability?slug=${encodeURIComponent(p.slug)}&duration=${len}`)
+      .then((r) => r.json())
+      .then((d: { slots?: string[]; unavailable?: boolean }) => {
+        if (!current) return;
+        setSlots((d.slots ?? []).map((iso) => new Date(iso)));
+        setUnavailable(Boolean(d.unavailable));
+      })
+      .catch(() => {
+        if (!current) return;
+        setSlots([]);
+        setUnavailable(true);
+      });
+    return () => {
+      current = false;
+    };
+  }, [p.slug, len]);
 
   const days = useMemo(() => {
-    if (!now) return [];
+    if (!slots) return [];
     const byDay = new Map<string, Date[]>();
-    for (const s of sampleSlots(p.availability, p.timeZone, len, { from: now, days: 21 })) {
+    for (const s of slots) {
       const d = zonedDate(s, viewerTz);
       const key = `${d.year}-${d.month}-${d.day}`;
       byDay.set(key, [...(byDay.get(key) ?? []), s]);
     }
     return [...byDay.values()].slice(0, DAYS_SHOWN);
-  }, [now, len, viewerTz, p.availability, p.timeZone]);
+  }, [slots, viewerTz]);
 
   const day = days[dayIdx] ?? [];
   const slot = slotIdx !== null ? day[slotIdx] : undefined;
@@ -150,12 +169,16 @@ export function BookingPanel(p: BookingPanelProps) {
 
       <div className="flex flex-col gap-2.5">
         <span className="label-overline">Choose a day</span>
-        {!now ? (
+        {!slots ? (
           <div className="grid grid-cols-5 gap-2" aria-hidden="true">
             {Array.from({ length: DAYS_SHOWN }, (_, i) => (
               <div key={i} className="h-14 animate-pulse rounded-md bg-cream-200" />
             ))}
           </div>
+        ) : unavailable ? (
+          <p className="m-0 text-sm text-slate-600">
+            Online booking with {p.preferredName} is paused for a moment. Send them a message to find a time.
+          </p>
         ) : days.length === 0 ? (
           <p className="m-0 text-sm text-slate-600">No openings in the next three weeks. Send {p.preferredName} a message.</p>
         ) : (
