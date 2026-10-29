@@ -15,6 +15,11 @@ const steps: Record<GoLiveItem, { label: string; todo: string; href: string }> =
   focus: { label: "Choose focus areas", todo: "What you help with, for the directory filters.", href: "/portal/settings?tab=bio#focus" },
   fees: { label: "Set your fees", todo: "A fee for each session length you offer.", href: "/portal/settings?tab=fees#fees" },
   hours: { label: "Set weekly hours", todo: "When clients can book you.", href: "/portal/settings?tab=scheduling#hours" },
+  calendar: {
+    label: "Connect Google Calendar",
+    todo: "So clients only see times you're free, and sessions get a Meet link.",
+    href: "/portal/settings?tab=scheduling#calendar",
+  },
 };
 
 /**

@@ -13,6 +13,7 @@ import { clock, QUARTER_HOURS, WEEK_ORDER, WEEKDAYS } from "@/lib/prototype/port
 import type { AvailabilityRule } from "@/lib/types";
 import { usePortal } from "../PortalShell";
 import { field, PageHeader, Panel, smallButton } from "../ui";
+import { CalendarSettings } from "./CalendarSettings";
 import { ServicesSettings } from "./ServicesSettings";
 
 type Tab = "scheduling" | "bio" | "fees" | "services" | "notifications";
@@ -120,9 +121,11 @@ function TimeZone() {
 }
 
 function Calendar() {
-  const { settings, save } = usePortal();
+  const { settings, save, real } = usePortal();
   const g = settings.google;
   const [connecting, setConnecting] = useState(false);
+
+  if (real) return <CalendarSettings />;
 
   const connect = () => {
     // PROTOTYPE ONLY: stands in for Google's sign-in and permission screens.

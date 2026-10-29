@@ -14,7 +14,9 @@ import { clientLocal, dayLabel, PageHeader, Panel, smallButton, when } from "./u
 const REST = 15 * 60_000;
 
 export function HomeView() {
-  const { counselor, settings, sessions } = usePortal();
+  const { counselor, settings, sessions, real, calendar } = usePortal();
+  // Real counselors use their actual Google connection; prototype samples use the pretend one.
+  const calendarConnected = real ? calendar?.status === "connected" : settings.google.connected;
   const tz = settings.timeZone;
   const now = Date.now();
   const upcoming = sessions.filter((x) => x.status === "confirmed" && new Date(x.startIso).getTime() + x.duration * 60_000 > now);
@@ -33,7 +35,7 @@ export function HomeView() {
       {/* On phones the sidebar is hidden, so the go-live checklist sits here. */}
       <GoLiveChecklist className="bg-white! lg:hidden" />
 
-      {!settings.google.connected && (
+      {!calendarConnected && (
         <Card padding="compact" className="flex flex-col gap-3 border-peach-400! bg-peach-50! sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-col gap-1">
             <b className="text-[17px]">Connect Google Calendar</b>
@@ -41,7 +43,7 @@ export function HomeView() {
               Until it&rsquo;s connected, FaithWellness can&rsquo;t check your other commitments or create Meet links.
             </span>
           </div>
-          <Button href="/portal/settings" className="flex-none">
+          <Button href="/portal/settings?tab=scheduling#calendar" className="flex-none">
             Connect now
           </Button>
         </Card>

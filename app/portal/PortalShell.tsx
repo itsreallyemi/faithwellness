@@ -26,6 +26,7 @@ import {
   saveSettings,
   type GoLiveItem,
   type OwnCounselor,
+  type CalendarConnection,
   type ServiceDraft,
   type TravelDraft,
 } from "@/lib/supabase/own-counselor";
@@ -54,6 +55,10 @@ type Portal = {
   newRequests: number;
   /** Reload the counselor's own profile, checklist and request count. */
   reload: () => void;
+  /** Real counselors' Google Calendar connection; null until they connect. */
+  calendar: CalendarConnection | null;
+  /** Real counselors' account id; null for prototype samples. */
+  ownId: string | null;
 };
 
 const PortalContext = createContext<Portal | null>(null);
@@ -172,6 +177,8 @@ export function PortalShell({
       },
       newRequests: ownLoaded?.newRequests ?? 0,
       reload,
+      calendar: ownLoaded?.calendar ?? null,
+      ownId: ownLoaded?.id ?? null,
       serviceTypes,
       saveServices: (next, travel) => {
         if (!ownLoaded) return;

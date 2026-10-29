@@ -9,10 +9,26 @@ import type { Counselor, CounselorService } from "@/lib/types";
 import { supabaseBrowser } from "./client";
 
 /** Keys from public.counselor_missing(), in checklist order. */
-export type GoLiveItem = "introduction" | "focus" | "fees" | "hours";
-export const GO_LIVE_ITEMS: GoLiveItem[] = ["introduction", "focus", "fees", "hours"];
+export type GoLiveItem = "introduction" | "focus" | "fees" | "hours" | "calendar";
+export const GO_LIVE_ITEMS: GoLiveItem[] = ["introduction", "focus", "fees", "hours", "calendar"];
 
-export type OwnCounselor = { id: string; counselor: Counselor; live: boolean; missing: GoLiveItem[]; newRequests: number };
+/** The counselor's Google Calendar connection, without its tokens (only the server can read those). */
+export type CalendarConnection = {
+  googleEmail: string;
+  calendars: { id: string; name: string; primary: boolean }[];
+  checkCalendars: string[];
+  writeCalendar: string;
+  status: "connected" | "needs_reconnect";
+};
+
+export type OwnCounselor = {
+  id: string;
+  counselor: Counselor;
+  live: boolean;
+  missing: GoLiveItem[];
+  newRequests: number;
+  calendar: CalendarConnection | null;
+};
 
 export async function loadOwnCounselor(slug: string): Promise<OwnCounselor | null> {
   const sb = supabaseBrowser();
@@ -22,17 +38,29 @@ export async function loadOwnCounselor(slug: string): Promise<OwnCounselor | nul
   ]);
   if (!data) return null;
   const row = data as unknown as CounselorRow & { id: string; is_published: boolean };
-  const { count } = await sb
-    .from("service_requests")
-    .select("id", { count: "exact", head: true })
-    .eq("counselor_id", row.id)
-    .eq("status", "new");
+  const [{ count }, { data: cal }] = await Promise.all([
+    sb.from("service_requests").select("id", { count: "exact", head: true }).eq("counselor_id", row.id).eq("status", "new"),
+    sb
+      .from("integrations")
+      .select("google_email, calendars, check_calendars, write_calendar, status")
+      .eq("counselor_id", row.id)
+      .maybeSingle(),
+  ]);
   return {
     id: row.id,
     counselor: fromRow(row),
     live: row.is_published,
     missing: (missing as GoLiveItem[] | null) ?? [],
     newRequests: count ?? 0,
+    calendar: cal
+      ? {
+          googleEmail: cal.google_email,
+          calendars: cal.calendars ?? [],
+          checkCalendars: cal.check_calendars ?? [],
+          writeCalendar: cal.write_calendar,
+          status: cal.status,
+        }
+      : null,
   };
 }
 
@@ -139,4 +167,19 @@ export async function saveServices(
     if (error) return false;
   }
   return true;
+}
+
+/** Which calendars to check for conflicts, and which one sessions go to. */
+export async function saveCalendarChoices(id: string, checkCalendars: string[], writeCalendar: string): Promise<boolean> {
+  const { error } = await supabaseBrowser()
+    .from("integrations")
+    .update({ check_calendars: checkCalendars, write_calendar: writeCalendar, updated_at: new Date().toISOString() })
+    .eq("counselor_id", id);
+  return !error;
+}
+
+/** Revokes FaithWellness's access at Google (server side, since it needs the stored token). */
+export async function disconnectCalendar(): Promise<boolean> {
+  const res = await fetch("/api/google/disconnect", { method: "POST" });
+  return res.ok;
 }
