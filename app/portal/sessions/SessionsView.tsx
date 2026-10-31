@@ -7,7 +7,10 @@ import { Card } from "@/components/ui/Card";
 import { cn } from "@/lib/cn";
 import { formatSession, formatTime } from "@/lib/prototype/format";
 import type { PortalSession } from "@/lib/prototype/portal";
-import { proto } from "@/lib/prototype/store";
+import { toProtoBooking } from "@/lib/bookings";
+import { formatFee } from "@/lib/format";
+import { proto, type ProtoBooking } from "@/lib/prototype/store";
+import { supabaseBrowser } from "@/lib/supabase/client";
 import { cancelReal } from "@/lib/supabase/bookings";
 import { usePortal } from "../PortalShell";
 import { clientLocal, dayLabel, field, PageHeader, smallButton } from "../ui";
@@ -125,6 +128,8 @@ function SessionRow({ session: x, upcoming }: { session: PortalSession; upcoming
         )}
       </div>
 
+      {upcoming && !canceling && x.bookingId && <PendingAnswer bookingId={x.bookingId} real={Boolean(x.real)} clientName={x.clientName} />}
+
       {canceling && (
         <div className="flex flex-col gap-3 rounded-md bg-cream p-4 md:col-span-4">
           <b className="text-[15px]">Cancel this session with {x.clientName}?</b>
@@ -153,5 +158,90 @@ function SessionRow({ session: x, upcoming }: { session: PortalSession; upcoming
         </div>
       )}
     </Card>
+  );
+}
+
+/**
+ * A price offer or insurance check on this session that's waiting for the counselor, answered right here.
+ * Real bookings save through the database; prototype ones change this browser only.
+ */
+function PendingAnswer({ bookingId, real, clientName }: { bookingId: string; real: boolean; clientName: string }) {
+  const { s, ownBookings, reload } = usePortal();
+  const [busy, setBusy] = useState(false);
+  const row = real ? ownBookings.find((r) => r.id === bookingId) : null;
+  const b: ProtoBooking | undefined = row ? toProtoBooking(row) : s.bookings.find((x) => x.id === bookingId);
+  const offer = b?.priceRequest?.status === "pending" ? b.priceRequest : null;
+  const insurance = b?.insurance?.status === "pending" ? b.insurance : null;
+  if (!b || (!offer && !insurance)) return null;
+
+  const answer = async (kind: "offer" | "insurance", yes: boolean) => {
+    const done =
+      kind === "offer"
+        ? yes
+          ? `Offer accepted. ${clientName} will see it on their session page.`
+          : `Reply saved. ${clientName} can keep the session at the usual fee or cancel.`
+        : yes
+          ? "Coverage marked as verified."
+          : `Marked as not covered. ${clientName} will see the usual fee.`;
+    if (!real) {
+      if (kind === "offer") proto.setPriceRequestStatus(b.id, yes ? "accepted" : "declined");
+      else proto.setInsuranceStatus(b.id, yes ? "verified" : "not-covered");
+      return proto.toast(done);
+    }
+    setBusy(true);
+    const { error } =
+      kind === "offer"
+        ? await supabaseBrowser().rpc("answer_price_offer", { p_id: b.id, p_accept: yes })
+        : await supabaseBrowser().rpc("answer_insurance", { p_id: b.id, p_covered: yes });
+    setBusy(false);
+    proto.toast(error ? "That didn’t save. Please try again." : done);
+    reload();
+  };
+
+  const reply = (
+    <Button href="/portal/messages" variant="link" className={smallButton}>
+      Reply
+    </Button>
+  );
+
+  return (
+    <div className="flex flex-col gap-3 rounded-md border border-peach-400 bg-peach-50 p-4 md:col-span-4">
+      {offer && (
+        <div className="flex flex-col gap-2.5">
+          <span className="text-[15px]">
+            <b>{clientName}</b>{" "}
+            {offer.offeredCents === 0 ? "asked to meet for free" : `offered ${formatFee(offer.offeredCents)}`}
+            {b.feeCents > 0 && <> instead of your usual {formatFee(b.feeCents)}</>}.
+          </span>
+          {offer.note && <q className="text-[15px] text-slate-600 italic">{offer.note}</q>}
+          <div className="flex flex-wrap gap-2">
+            <Button className={smallButton} disabled={busy} onClick={() => answer("offer", true)}>
+              Accept
+            </Button>
+            <Button variant="secondary" className={smallButton} disabled={busy} onClick={() => answer("offer", false)}>
+              Decline
+            </Button>
+            {reply}
+          </div>
+        </div>
+      )}
+      {insurance && (
+        <div className="flex flex-col gap-2.5">
+          <span className="text-[15px]">
+            <b>{clientName}</b> wants to use <b>{insurance.provider}</b>. Member ID ends in {insurance.memberIdLast4}
+            {insurance.groupNumber && `, group ${insurance.groupNumber}`}.
+          </span>
+          <div className="flex flex-wrap gap-2">
+            <Button className={smallButton} disabled={busy} onClick={() => answer("insurance", true)}>
+              Coverage verified
+            </Button>
+            <Button variant="secondary" className={smallButton} disabled={busy} onClick={() => answer("insurance", false)}>
+              Not covered
+            </Button>
+            {reply}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

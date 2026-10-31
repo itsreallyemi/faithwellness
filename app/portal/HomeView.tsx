@@ -4,9 +4,11 @@ import Link from "next/link";
 import { CalendarX2, HandHeart, MessageCircle, ShieldCheck, Video } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { toProtoBooking } from "@/lib/bookings";
 import { formatFee } from "@/lib/format";
 import { formatSession, formatTime } from "@/lib/prototype/format";
 import { proto, type ProtoBooking } from "@/lib/prototype/store";
+import { supabaseBrowser } from "@/lib/supabase/client";
 import { GoLiveChecklist } from "./GoLiveChecklist";
 import { usePortal } from "./PortalShell";
 import { clientLocal, dayLabel, PageHeader, Panel, smallButton, when } from "./ui";
@@ -144,44 +146,56 @@ function Stat({ value, label }: { value: number; label: string }) {
 
 /** Price offers, insurance checks and unanswered messages from clients. */
 function NeedsReply() {
-  const { s, counselor, settings, unread } = usePortal();
+  const { s, counselor, settings, unread, real, ownBookings, reload } = usePortal();
   const tz = settings.timeZone;
-  const client = s.user?.name.split(" ")[0] ?? "Your client";
-  const open = s.bookings.filter(
-    (b) => b.slug === counselor.slug && b.status === "confirmed" && new Date(b.startIso).getTime() > Date.now(),
-  );
-  const offers = open.filter((b) => b.priceRequest?.status === "pending");
-  const insurance = open.filter((b) => b.insurance?.status === "pending");
+  // Real counselors answer their real bookings (saved through the database); prototype samples answer the
+  // prototype client's bookings in this browser.
+  const protoName = s.user?.name.split(" ")[0] ?? "Your client";
+  const protoTz = s.user?.timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const entries: { b: ProtoBooking; name: string; clientTz: string }[] = real
+    ? ownBookings.map((r) => ({ b: toProtoBooking(r), name: r.client_name.split(" ")[0] || "Your client", clientTz: r.client_time_zone || protoTz }))
+    : s.bookings.filter((b) => b.slug === counselor.slug).map((b) => ({ b, name: protoName, clientTz: protoTz }));
+  const open = entries.filter((e) => e.b.status === "confirmed" && new Date(e.b.startIso).getTime() > Date.now());
+  const offers = open.filter((e) => e.b.priceRequest?.status === "pending");
+  const insurance = open.filter((e) => e.b.insurance?.status === "pending");
   if (offers.length + insurance.length + unread === 0) return null;
 
   const date = (b: ProtoBooking) => `${dayLabel(new Date(b.startIso), tz)} at ${formatTime(new Date(b.startIso), tz)}`;
   // Messages go to the client, so they use the client's time zone, not the counselor's.
-  const clientTz = s.user?.timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const theirDate = (b: ProtoBooking) => formatSession(new Date(b.startIso), b.duration, clientTz);
+  const theirDate = (b: ProtoBooking, clientTz: string) => formatSession(new Date(b.startIso), b.duration, clientTz);
   const usual = (b: ProtoBooking) => formatFee(b.feeCents);
+
+  /** Saves a real answer; the client sees it on their session page. */
+  const answer = async (fn: "answer_price_offer" | "answer_insurance", id: string, yes: boolean, done: string) => {
+    const args = fn === "answer_price_offer" ? { p_id: id, p_accept: yes } : { p_id: id, p_covered: yes };
+    const { error } = await supabaseBrowser().rpc(fn, args);
+    proto.toast(error ? "That didn’t save. Please try again." : done);
+    reload();
+  };
 
   return (
     <Panel id="needs-reply" title="Needs your reply" className="border-peach-400!">
       <ul className="m-0 flex list-none flex-col divide-y divide-border p-0">
-        {offers.map((b) => {
+        {offers.map(({ b, name, clientTz }) => {
           const pr = b.priceRequest!;
           const offer = pr.offeredCents === 0 ? "asked to meet for free" : `offered ${formatFee(pr.offeredCents)}`;
           return (
             <Item key={`offer-${b.id}`} icon={HandHeart}>
               <span className="text-[15px]">
-                <b>{client}</b> {offer} for {date(b)} ({b.duration} min, usual {usual(b)}).
+                <b>{name}</b> {offer} for {date(b)} ({b.duration} min, usual {usual(b)}).
               </span>
               {pr.note && <q className="text-[15px] text-slate-600 italic">{pr.note}</q>}
               <div className="flex flex-wrap gap-2">
                 <Button
                   className={smallButton}
                   onClick={() => {
+                    if (b.real) return answer("answer_price_offer", b.id, true, `Offer accepted. ${name} will see it on their session page.`);
                     proto.setPriceRequestStatus(b.id, "accepted");
                     proto.counselorSend(
                       counselor.slug,
                       pr.offeredCents === 0
-                        ? `I’m glad to meet with you at no cost on ${theirDate(b)}.`
-                        : `I’m glad to accept your offer of ${formatFee(pr.offeredCents)} for our session on ${theirDate(b)}.`,
+                        ? `I’m glad to meet with you at no cost on ${theirDate(b, clientTz)}.`
+                        : `I’m glad to accept your offer of ${formatFee(pr.offeredCents)} for our session on ${theirDate(b, clientTz)}.`,
                     );
                     proto.toast("Offer accepted. Your client has been told.");
                   }}
@@ -192,6 +206,7 @@ function NeedsReply() {
                   variant="secondary"
                   className={smallButton}
                   onClick={() => {
+                    if (b.real) return answer("answer_price_offer", b.id, false, `Reply saved. ${name} can keep the session at the usual fee or cancel.`);
                     proto.setPriceRequestStatus(b.id, "declined");
                     proto.counselorSend(
                       counselor.slug,
@@ -206,16 +221,17 @@ function NeedsReply() {
             </Item>
           );
         })}
-        {insurance.map((b) => (
+        {insurance.map(({ b, name }) => (
           <Item key={`ins-${b.id}`} icon={ShieldCheck}>
             <span className="text-[15px]">
-              <b>{client}</b> wants to use <b>{b.insurance!.provider}</b> for {date(b)}. Member ID ends in {b.insurance!.memberIdLast4}
+              <b>{name}</b> wants to use <b>{b.insurance!.provider}</b> for {date(b)}. Member ID ends in {b.insurance!.memberIdLast4}
               {b.insurance!.groupNumber && `, group ${b.insurance!.groupNumber}`}.
             </span>
             <div className="flex flex-wrap gap-2">
               <Button
                 className={smallButton}
                 onClick={() => {
+                  if (b.real) return answer("answer_insurance", b.id, true, "Coverage marked as verified.");
                   proto.setInsuranceStatus(b.id, "verified");
                   proto.toast("Coverage marked as verified.");
                 }}
@@ -226,6 +242,7 @@ function NeedsReply() {
                 variant="secondary"
                 className={smallButton}
                 onClick={() => {
+                  if (b.real) return answer("answer_insurance", b.id, false, `Marked as not covered. ${name} will see the usual fee.`);
                   proto.setInsuranceStatus(b.id, "not-covered");
                   proto.toast("Marked as not covered. Your client will see the usual fee.");
                 }}
@@ -238,7 +255,7 @@ function NeedsReply() {
         {unread > 0 && (
           <Item icon={MessageCircle}>
             <span className="text-[15px]">
-              <b>{client}</b> sent you {unread === 1 ? "a message" : `${unread} messages`}.
+              <b>{protoName}</b> sent you {unread === 1 ? "a message" : `${unread} messages`}.
             </span>
             <Button href="/portal/messages" variant="secondary" className={`${smallButton} self-start`}>
               Reply

@@ -60,6 +60,8 @@ type Portal = {
   calendar: CalendarConnection | null;
   /** Real counselors' account id; null for prototype samples. */
   ownId: string | null;
+  /** Real counselors' bookings as stored (with client names), for answering offers and insurance. */
+  ownBookings: BookingRow[];
 };
 
 const PortalContext = createContext<Portal | null>(null);
@@ -183,6 +185,7 @@ export function PortalShell({
       reload,
       calendar: ownLoaded?.calendar ?? null,
       ownId: ownLoaded?.id ?? null,
+      ownBookings: ownLoaded?.bookings ?? [],
       serviceTypes,
       saveServices: (next, travel) => {
         if (!ownLoaded) return;
@@ -258,7 +261,7 @@ function paymentLabel(b: ProtoBooking) {
   }
   if (b.priceRequest) {
     const offer = b.priceRequest.offeredCents === 0 ? "Asked for free" : `Offer ${formatFee(b.priceRequest.offeredCents)}`;
-    const status = { pending: "needs reply", accepted: "accepted", declined: "usual fee" }[b.priceRequest.status];
+    const status = { pending: "waiting for you", accepted: "accepted", declined: "declined · usual fee" }[b.priceRequest.status];
     return `${offer} · ${status}`;
   }
   return formatFee(agreedFeeCents(b));
