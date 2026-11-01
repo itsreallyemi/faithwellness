@@ -237,6 +237,8 @@ function setStatus(churchSlug: string, status: ProtoMembership["status"]) {
 }
 
 let toastTimer: ReturnType<typeof setTimeout> | undefined;
+/** Counselor slugs whose threads came from the database, so a later sync (or sign-out) can replace them. */
+let realThreadSlugs: string[] = [];
 
 export const proto = {
   /** Set by signOut so pages that need an account don't bounce to /sign-in on the way out. */
@@ -436,6 +438,18 @@ export const proto = {
       bookings: s.bookings.map((b) => (b.id === bookingId && b.insurance ? { ...b, insurance: { ...b.insurance, status } } : b)),
     }));
   },
+  /**
+   * Real conversations with real counselors, by counselor slug. Replaces the threads it was last given, so
+   * conversations with sample counselors (still prototype) stay as they are.
+   */
+  syncRealThreads(next: Record<string, ProtoMessage[]>) {
+    set((s) => {
+      const threads = { ...s.threads };
+      for (const slug of realThreadSlugs) delete threads[slug];
+      realThreadSlugs = Object.keys(next);
+      return { ...s, threads: { ...threads, ...next } };
+    });
+  },
   /** Replaces memberships with the account's real ones (on sign-in, and after each change). */
   syncMemberships(list: ProtoMembership[]) {
     set((s) => ({ ...s, memberships: list }));
@@ -444,27 +458,11 @@ export const proto = {
   syncRealBookings(list: ProtoBooking[]) {
     set((s) => ({ ...s, bookings: [...s.bookings.filter((b) => !b.real), ...list] }));
   },
-  /**
-   * Adds or updates one real booking. New ones get the same notes in the message thread as a prototype
-   * booking (messages are still prototype); a cancellation adds its note too.
-   */
-  saveRealBooking(booking: ProtoBooking, event?: "booked" | "canceled", reason?: string) {
+  /** Adds or updates one real booking. Its notes (confirmed, canceled) live in the real conversation. */
+  saveRealBooking(booking: ProtoBooking) {
     set((s) => ({ ...s, bookings: [...s.bookings.filter((b) => b.id !== booking.id), booking] }));
-    if (event === "booked") {
-      if (booking.note.trim()) push(booking.slug, { from: "client", body: booking.note.trim() });
-      push(booking.slug, { from: "system", body: "Session confirmed", bookingId: booking.id });
-      if (booking.priceRequest) {
-        const offer = booking.priceRequest.offeredCents;
-        push(booking.slug, {
-          from: "system",
-          body: offer === 0 ? "You asked whether this session could be free, because the fee is a hardship right now." : `You offered ${Math.round(offer / 100)} for this session instead of the usual fee.`,
-          bookingId: booking.id,
-        });
-      }
-    }
-    if (event === "canceled") push(booking.slug, { from: "system", body: reason ?? "Session canceled.", bookingId: booking.id });
   },
-    cancel(bookingId: string, reason = "Session canceled.") {
+  cancel(bookingId: string, reason = "Session canceled.") {
     const booking = get().bookings.find((b) => b.id === bookingId);
     if (!booking || booking.status === "canceled") return;
     set((s) => ({

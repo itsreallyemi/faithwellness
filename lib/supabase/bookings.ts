@@ -27,10 +27,10 @@ export async function bookReal(body: NewBooking): Promise<{ booking: ProtoBookin
     const data = (await res.json()) as { booking?: BookingRow; error?: string };
     if (!res.ok || !data.booking) return { error: bookErrors[data.error ?? ""] ?? "Something went wrong booking. Please try again." };
     const booking = toProtoBooking(data.booking);
-    proto.saveRealBooking(booking, "booked");
+    proto.saveRealBooking(booking);
     if (body.rescheduleOf) {
       const old = proto.snapshot()?.bookings.find((b) => b.id === body.rescheduleOf);
-      if (old) proto.saveRealBooking({ ...old, status: "canceled" }, "canceled", "Rescheduled to a new time.");
+      if (old) proto.saveRealBooking({ ...old, status: "canceled" });
     }
     return { booking };
   } catch {
@@ -44,7 +44,7 @@ export async function cancelReal(id: string, reason: string): Promise<boolean> {
     const res = await fetch(`/api/bookings/${id}/cancel`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ reason }) });
     const data = (await res.json()) as { booking?: BookingRow };
     if (!res.ok || !data.booking) return false;
-    proto.saveRealBooking(toProtoBooking(data.booking), "canceled", reason || "Session canceled.");
+    proto.saveRealBooking(toProtoBooking(data.booking));
     return true;
   } catch {
     return false;

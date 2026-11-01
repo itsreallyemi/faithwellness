@@ -11,7 +11,7 @@ import { initialsFor } from "@/components/ui/Avatar";
 import { Logo } from "@/components/ui/Logo";
 import { cn } from "@/lib/cn";
 import { membershipStatus, useProto } from "@/lib/prototype/store";
-import { ownChurch, ownCounselorSlug, useAccountKind, useOwnAvatar } from "@/lib/supabase/client";
+import { homeFor, ownChurch, ownCounselorSlug, useAccountKind, useOwnAvatar } from "@/lib/supabase/client";
 
 type NavLink = { href: string; label: string; match: (p: string) => boolean };
 
@@ -24,6 +24,23 @@ const publicLinks: NavLink[] = [
   find,
   { href: "/for-churches", label: "For churches", match: (p) => p.startsWith("/for-churches") },
   { href: "/for-counselors", label: "For counselors", match: (p) => p.startsWith("/for-counselors") },
+];
+/** Counselors work in their portal. */
+const counselorLinks: NavLink[] = [
+  { href: "/portal", label: "Dashboard", match: (p) => p === "/portal" },
+  { href: "/portal/sessions", label: "Sessions", match: (p) => p.startsWith("/portal/sessions") },
+  { href: "/portal/messages", label: "Messages", match: (p) => p.startsWith("/portal/messages") },
+  { href: "/portal/settings", label: "Settings", match: (p) => p.startsWith("/portal/settings") },
+];
+const churchLinks = (slug: string): NavLink[] => [
+  { href: `/church/${slug}`, label: "Dashboard", match: (p) => p === `/church/${slug}` },
+  { href: `/church/${slug}#requests`, label: "Member requests", match: () => false },
+  { href: `/counselors?church=${slug}`, label: "Our counselors", match: (p) => p.startsWith("/counselors") },
+];
+const staffLinks: NavLink[] = [
+  { href: "/admin", label: "Counselors", match: (p) => p === "/admin" },
+  { href: "/admin/churches", label: "Churches", match: (p) => p.startsWith("/admin/churches") },
+  { href: "/counselors", label: "Directory", match: (p) => p === "/" || p.startsWith("/counselors") },
 ];
 const clientLinks: NavLink[] = [
   find,
@@ -75,10 +92,22 @@ export function SiteHeader() {
     return () => document.removeEventListener("click", close);
   }, [accountOpen]);
 
-  const links = user ? clientLinks : publicLinks;
+  // Each kind of account gets its own top links: members browse, counselors, churches and staff work.
+  const links: NavLink[] = !user
+    ? publicLinks
+    : kind === "provider" && ownCounselorSlug
+      ? counselorLinks
+      : kind === "church" && ownChurch
+        ? churchLinks(ownChurch.slug)
+        : kind === "staff"
+          ? staffLinks
+          : clientLinks;
   // Account menu items (desktop dropdown and phone menu). The workspace link comes first.
   const accountLinks: { href: string; label: string; match: (p: string) => boolean; strong?: boolean }[] = [
     ...(workspace ? [{ ...workspace, match: (p: string) => p.startsWith(workspace.href), strong: true }] : []),
+    ...(kind === "provider" && ownCounselorSlug
+      ? [{ href: `/counselors/${ownCounselorSlug}`, label: "View my public profile", match: (p: string) => p === `/counselors/${ownCounselorSlug}` }]
+      : []),
     { href: "/account", label: "Your profile", match: (p: string) => p.startsWith("/account"), strong: true },
     { href: "/membership", label: "Church memberships", match: (p: string) => p.startsWith("/membership") },
     ...(isClient ? [{ href: "/get-started", label: "Your answers and matches", match: (p: string) => p.startsWith("/get-started") }] : []),
@@ -91,7 +120,7 @@ export function SiteHeader() {
   return (
     <header className="border-b border-border-warm bg-cream">
       <nav aria-label="Main" className="mx-auto flex max-w-[1280px] items-center gap-8 px-4 py-2 md:px-8 md:py-4">
-        <Logo href="/counselors" />
+        <Logo href={user ? homeFor(kind) : "/counselors"} />
         <ul className="m-0 hidden list-none gap-6 p-0 text-[15px] font-medium md:flex">
           {links.map((l) => {
             const active = l.match(pathname);

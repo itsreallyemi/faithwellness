@@ -15,6 +15,8 @@ import { formatDay, formatSession, formatTime } from "@/lib/prototype/format";
 import type { CounselorLite } from "@/lib/prototype/lite";
 import { feeSummary } from "../sessions/[id]/SessionView";
 import { proto, type ProtoBooking, type ProtoMessage, type ProtoState } from "@/lib/prototype/store";
+import { authEnabled } from "@/lib/supabase/client";
+import { clientThreadId, markThreadRead, sendToCounselor } from "@/lib/supabase/messages";
 import { zonedDate } from "@/lib/time";
 
 type Props = { counselors: CounselorLite[]; activeSlug: string | null };
@@ -162,10 +164,25 @@ function Thread({ counselor: c, state }: { counselor: CounselorLite; state: Prot
     scroller.current?.scrollTo({ top: scroller.current.scrollHeight, behavior: "smooth" });
   }, [messages.length]);
 
-  const send = () => {
-    if (!draft.trim()) return;
-    proto.send(c.slug, draft.trim());
-    setDraft("");
+  // Real counselors get real, private messages; the fictional samples keep the browser-only demo.
+  const real = authEnabled && !c.isSample;
+  const [sending, setSending] = useState(false);
+  const threadId = real ? clientThreadId(c.slug) : undefined;
+  useEffect(() => {
+    if (threadId) void markThreadRead(threadId);
+  }, [threadId, messages.length]);
+
+  const send = async () => {
+    if (!draft.trim() || sending) return;
+    if (!real) {
+      proto.send(c.slug, draft.trim());
+      return setDraft("");
+    }
+    setSending(true);
+    const ok = await sendToCounselor(c.slug, draft.trim());
+    setSending(false);
+    if (ok) setDraft("");
+    else proto.toast("Your message didn’t send. Please try again.");
   };
 
   let lastDay = "";
@@ -259,7 +276,7 @@ function Thread({ counselor: c, state }: { counselor: CounselorLite; state: Prot
           placeholder={`Message ${c.preferredName}…`}
           className="max-h-40 min-h-11 min-w-0 flex-1 resize-none rounded-[20px] border border-border bg-cream px-4 py-2.5 text-base leading-6 [field-sizing:content]"
         />
-        <Button type="submit" aria-label="Send" className="size-11 flex-none px-0! md:w-auto md:px-[22px]!" disabled={!draft.trim()}>
+        <Button type="submit" aria-label="Send" className="size-11 flex-none px-0! md:w-auto md:px-[22px]!" disabled={!draft.trim() || sending}>
           <Send size={18} strokeWidth={1.8} className="md:hidden" aria-hidden="true" />
           <span className="hidden md:inline">Send</span>
         </Button>

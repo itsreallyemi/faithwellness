@@ -31,6 +31,7 @@ import {
   type ServiceDraft,
   type TravelDraft,
 } from "@/lib/supabase/own-counselor";
+import { loadThreads, watchMessages, type ThreadRow } from "@/lib/supabase/messages";
 import type { Counselor, FocusArea, ServiceType } from "@/lib/types";
 
 type Portal = {
@@ -62,6 +63,9 @@ type Portal = {
   ownId: string | null;
   /** Real counselors' bookings as stored (with client names), for answering offers and insurance. */
   ownBookings: BookingRow[];
+  /** Real counselors' conversations with their clients, newest first. */
+  realThreads: ThreadRow[];
+  reloadThreads: () => void;
 };
 
 const PortalContext = createContext<Portal | null>(null);
@@ -109,6 +113,18 @@ export function PortalShell({
   }, [realSlug]);
   useEffect(reload, [reload]);
   const ownLoaded = own?.counselor.slug === realSlug ? own : null;
+
+  // Real counselors' conversations, kept live as messages arrive.
+  const [realThreads, setRealThreads] = useState<ThreadRow[]>([]);
+  const ownId = ownLoaded?.id ?? null;
+  const reloadThreads = useCallback(() => {
+    if (ownId) loadThreads(ownId, "counselor").then(setRealThreads);
+  }, [ownId]);
+  useEffect(() => {
+    if (!ownId) return;
+    reloadThreads();
+    return watchMessages(reloadThreads);
+  }, [ownId, reloadThreads]);
 
   const counselor = realSlug
     ? (ownLoaded?.counselor ?? null)
@@ -163,7 +179,13 @@ export function PortalShell({
       sessions: (ownLoaded ? realSessions(ownLoaded.bookings) : [...sampleSessions(counselor, settings), ...yours]).sort((a, b) =>
         a.startIso.localeCompare(b.startIso),
       ),
-      unread: thread.slice(lastCounselor + 1).filter((m) => m.from === "client").length,
+      // Real counselors: conversations whose newest message is from the client and hasn't been read.
+      unread: ownLoaded
+        ? realThreads.filter((t) => {
+            const last = [...t.messages].sort((a, b) => a.created_at.localeCompare(b.created_at)).at(-1);
+            return last && last.kind === "text" && last.sender_id === t.client_id && (!t.counselor_read_at || t.counselor_read_at < last.created_at);
+          }).length
+        : thread.slice(lastCounselor + 1).filter((m) => m.from === "client").length,
       real: Boolean(ownLoaded),
       live: ownLoaded?.live ?? true,
       missing: ownLoaded?.missing ?? [],
@@ -186,6 +208,8 @@ export function PortalShell({
       calendar: ownLoaded?.calendar ?? null,
       ownId: ownLoaded?.id ?? null,
       ownBookings: ownLoaded?.bookings ?? [],
+      realThreads,
+      reloadThreads,
       serviceTypes,
       saveServices: (next, travel) => {
         if (!ownLoaded) return;
@@ -195,7 +219,7 @@ export function PortalShell({
         });
       },
     };
-  }, [s, counselor, device, ownLoaded, focusAreas, serviceTypes, reload]);
+  }, [s, counselor, device, ownLoaded, focusAreas, serviceTypes, reload, realThreads, reloadThreads]);
 
   if (!s || (realSlug && ownTried !== realSlug)) {
     return (

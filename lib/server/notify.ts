@@ -243,3 +243,62 @@ export async function churchApplicationDecided(applicationId: string) {
     console.error("churchApplicationDecided email", e instanceof Error ? e.message : e);
   }
 }
+
+/**
+ * Someone sent a message: email the other person, unless they've already been emailed about this conversation
+ * in the last 30 minutes without reading it since. Never includes the message itself.
+ */
+export async function messageSent(messageId: string, senderId: string) {
+  try {
+    const db = adminDb();
+    const { data: m } = await db.from("messages").select("thread_id, sender_id, created_at").eq("id", messageId).maybeSingle();
+    if (!m || m.sender_id !== senderId) return;
+    const { data: t } = await db
+      .from("threads")
+      .select("id, counselor_id, client_id, client_name, client_read_at, counselor_read_at, client_emailed_at, counselor_emailed_at, counselor:counselors(slug, is_sample)")
+      .eq("id", m.thread_id)
+      .maybeSingle();
+    const thread = t as unknown as {
+      id: string;
+      counselor_id: string;
+      client_id: string;
+      client_name: string;
+      client_read_at: string | null;
+      counselor_read_at: string | null;
+      client_emailed_at: string | null;
+      counselor_emailed_at: string | null;
+      counselor: { slug: string; is_sample: boolean } | null;
+    } | null;
+    if (!thread || thread.counselor?.is_sample) return;
+
+    const toCounselor = senderId === thread.client_id;
+    const emailedAt = toCounselor ? thread.counselor_emailed_at : thread.client_emailed_at;
+    const readAt = toCounselor ? thread.counselor_read_at : thread.client_read_at;
+    const recent = emailedAt && Date.now() - new Date(emailedAt).getTime() < 30 * 60_000;
+    const readSince = readAt && emailedAt && readAt > emailedAt;
+    if (recent && !readSince) return;
+
+    const c = await counselorInfo(thread.counselor_id);
+    if (toCounselor) {
+      await sendEmail({
+        to: c.email,
+        subject: `New message from ${firstName(thread.client_name)}`,
+        body: `Hi ${firstName(c.name)},\n\n${firstName(thread.client_name)} sent you a message on FaithWellness. For their privacy, read and reply in your portal.`,
+        button: { label: "Read the message", href: `${SITE}/portal/messages` },
+      });
+    } else {
+      await sendEmail({
+        to: await emailOf(thread.client_id),
+        subject: `${c.name} sent you a message`,
+        body: `Hi ${firstName(thread.client_name)},\n\n${c.name} sent you a message on FaithWellness. For your privacy, read and reply on the site.`,
+        button: { label: "Read the message", href: `${SITE}/messages/${thread.counselor?.slug ?? ""}` },
+      });
+    }
+    await db
+      .from("threads")
+      .update(toCounselor ? { counselor_emailed_at: new Date().toISOString() } : { client_emailed_at: new Date().toISOString() })
+      .eq("id", thread.id);
+  } catch (e) {
+    console.error("messageSent email", e instanceof Error ? e.message : e);
+  }
+}

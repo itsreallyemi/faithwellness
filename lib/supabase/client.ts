@@ -103,7 +103,7 @@ export function useOwnAvatar() {
 
 /** Asks the server to email whoever should hear about a change just saved. Fire and forget. */
 export function notify(
-  kind: "service-requested" | "service-answered" | "application-decided" | "church-application-decided",
+  kind: "service-requested" | "service-answered" | "application-decided" | "church-application-decided" | "message-sent",
   id: string,
 ) {
   fetch("/api/notify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind, id }) }).catch(() => {});
@@ -128,4 +128,12 @@ export function useIntakeSettled() {
     () => intakeSettled,
     () => false,
   );
+}
+
+/** Where each kind of account lands: after signing in (with nowhere particular to go) and from the logo. */
+export function homeFor(kind: AccountKind) {
+  if (kind === "staff") return "/admin";
+  if (kind === "church" && ownChurch) return `/church/${ownChurch.slug}`;
+  if (kind === "provider") return ownCounselorSlug ? "/portal" : "/for-counselors#apply";
+  return "/counselors";
 }

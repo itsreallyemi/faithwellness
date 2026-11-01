@@ -5,7 +5,7 @@ import type { Church, Counselor, ServicePricing, Travel, TravelFee } from "@/lib
 
 export const COUNSELOR_SELECT = `slug, preferred_name, title, years_ministry, languages, summary, about, approach, verse, verse_ref,
        help_with, badges, insurance_accepted, fee_30_cents, fee_60_cents, offers_30, offers_60, free_30, free_60, sliding_scale, free_for_members,
-       fee_note, avatar_tint, service_area, travel, travel_miles, travel_fee, travel_fee_cents,
+       fee_note, avatar_tint, is_sample, service_area, travel, travel_miles, travel_fee, travel_fee_cents,
        profile:profiles!inner(full_name, avatar_url, time_zone),
        church:churches(slug, name, city, denomination),
        credentials(label, issuer, year, sort),
@@ -37,6 +37,7 @@ export type CounselorRow = {
   free_for_members: boolean;
   fee_note: string | null;
   avatar_tint: string;
+  is_sample: boolean;
   service_area: string;
   travel: Travel;
   travel_miles: number | null;
@@ -95,6 +96,7 @@ export function fromRow(r: CounselorRow): Counselor {
       start: a.start_time.slice(0, 5),
       end: a.end_time.slice(0, 5),
     })),
+    isSample: r.is_sample,
     serviceArea: r.service_area,
     travel: r.travel,
     travelMiles: r.travel_miles,

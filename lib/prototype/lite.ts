@@ -3,7 +3,7 @@ import type { Counselor } from "@/lib/types";
 /** The bits of a counselor the prototype's client pages need. */
 export type CounselorLite = Pick<
   Counselor,
-  "slug" | "name" | "preferredName" | "title" | "avatarUrl" | "avatarTint" | "badges" | "insurance" | "slidingScale" | "timeZone" | "fee30Cents" | "fee60Cents"
+  "slug" | "name" | "preferredName" | "title" | "avatarUrl" | "avatarTint" | "badges" | "insurance" | "slidingScale" | "timeZone" | "fee30Cents" | "fee60Cents" | "isSample"
 > & { churchName: string | null; churchSlug: string | null };
 
 export function toLite(c: Counselor): CounselorLite {
@@ -20,6 +20,7 @@ export function toLite(c: Counselor): CounselorLite {
     timeZone: c.timeZone,
     fee30Cents: c.fee30Cents,
     fee60Cents: c.fee60Cents,
+    isSample: c.isSample,
     churchName: c.church?.name ?? null,
     churchSlug: c.church?.slug ?? null,
   };

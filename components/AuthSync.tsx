@@ -13,6 +13,7 @@ import {
   supabaseBrowser,
 } from "@/lib/supabase/client";
 import { loadIntake, saveIntakeRemote } from "@/lib/supabase/intake";
+import { syncClientThreads, watchMessages } from "@/lib/supabase/messages";
 import { loadMemberships } from "@/lib/supabase/memberships";
 import { proto } from "@/lib/prototype/store";
 import { loadClientBookings } from "@/lib/supabase/bookings";
@@ -29,6 +30,7 @@ export function AuthSync() {
     let alive = true;
     // Who's signed in, and the answers last saved for them, so edits to the questions save to the account.
     let userId: string | null = null;
+    let stopMessages: (() => void) | null = null;
     let lastSavedIntake = "";
     const stopWatching = proto.subscribe(() => {
       const intake = proto.snapshot().intake;
@@ -45,6 +47,9 @@ export function AuthSync() {
         proto.syncRealBookings([]);
         setIntakeSettled(false);
         userId = null;
+        stopMessages?.();
+        stopMessages = null;
+        proto.syncRealThreads({});
         lastSavedIntake = "";
         setOwnCounselorSlug(null);
         setOwnChurch(null);
@@ -99,6 +104,13 @@ export function AuthSync() {
       setIntakeSettled(Boolean(intake || proto.snapshot().intake));
       userId = id;
 
+      // Real conversations with real counselors, kept up to date as messages arrive.
+      await syncClientThreads(id);
+      stopMessages?.();
+      stopMessages = watchMessages(() => {
+        if (userId) void syncClientThreads(userId);
+      });
+
       // Church memberships from the database (for member care and the member badge).
       proto.syncMemberships(await loadMemberships(id));
 
@@ -114,6 +126,7 @@ export function AuthSync() {
     return () => {
       alive = false;
       stopWatching();
+      stopMessages?.();
       data.subscription.unsubscribe();
     };
   }, []);

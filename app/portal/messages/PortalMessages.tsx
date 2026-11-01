@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronLeft, Lock, Send } from "lucide-react";
 import { SharedIntakeCard } from "@/components/prototype/SharedIntake";
 import { Avatar } from "@/components/ui/Avatar";
@@ -9,10 +9,12 @@ import { Card } from "@/components/ui/Card";
 import { cn } from "@/lib/cn";
 import { formatTime } from "@/lib/prototype/format";
 import { proto, type ProtoMessage } from "@/lib/prototype/store";
+import { markThreadRead, sendInThread, toProtoMessages } from "@/lib/supabase/messages";
 import { usePortal } from "../PortalShell";
 import { dayLabel, field, PageHeader } from "../ui";
 
-type Thread = { id: string; name: string; messages: ProtoMessage[]; sample: boolean };
+/** real: a conversation saved in the database (a real counselor with a real client). */
+type Thread = { id: string; name: string; messages: ProtoMessage[]; sample: boolean; real?: boolean };
 
 /** Fictional conversations so the inbox isn't empty. They can't be replied to. */
 function sampleThreads(preferredName: string): Thread[] {
@@ -44,13 +46,22 @@ function sampleThreads(preferredName: string): Thread[] {
   ];
 }
 
+/** "Grace T." from "Grace Thompson": counselors see a first name and last initial. */
+const short = (name: string) => {
+  const [first, ...rest] = name.trim().split(/\s+/);
+  return rest.length ? `${first} ${rest.at(-1)![0]}.` : first || "Client";
+};
+
 export function PortalMessages() {
-  const { s, counselor } = usePortal();
+  const { s, counselor, real, realThreads } = usePortal();
   const yours: Thread[] =
     s.user || (s.threads[counselor.slug]?.length ?? 0) > 0
       ? [{ id: "you", name: s.user?.name ?? "Prototype client", messages: s.threads[counselor.slug] ?? [], sample: false }]
       : [];
-  const threads = [...yours, ...sampleThreads(counselor.preferredName)];
+  // Real counselors see only their real conversations; prototype samples keep the demo inbox.
+  const threads: Thread[] = real
+    ? realThreads.map((t) => ({ id: t.id, name: short(t.client_name), messages: toProtoMessages(t, "counselor"), sample: false, real: true }))
+    : [...yours, ...sampleThreads(counselor.preferredName)];
   const [openId, setOpenId] = useState<string | null>(null);
   const open = threads.find((t) => t.id === openId) ?? null;
 
@@ -60,6 +71,9 @@ export function PortalMessages() {
       <div className="grid items-start gap-5 lg:grid-cols-[320px_1fr]">
         <Card padding="none" className={cn("overflow-hidden", open && "hidden lg:block")}>
           <ul className="m-0 flex list-none flex-col divide-y divide-border p-0" aria-label="Conversations">
+            {threads.length === 0 && (
+              <li className="p-5 text-[15px] text-slate-600">No messages yet. When a client writes to you, it appears here.</li>
+            )}
             {threads.map((t) => {
               const last = t.messages.filter((m) => m.from !== "system").at(-1);
               return (
@@ -103,17 +117,31 @@ export function PortalMessages() {
 }
 
 function Conversation({ thread, onBack }: { thread: Thread; onBack: () => void }) {
-  const { s, counselor, settings } = usePortal();
+  const { s, counselor, settings, reloadThreads } = usePortal();
   const [draft, setDraft] = useState("");
+  const [sending, setSending] = useState(false);
   const tz = settings.timeZone;
-  const intake = !thread.sample && s.intake?.shareWithCounselor ? s.intake : null;
+  const intake = !thread.sample && !thread.real && s.intake?.shareWithCounselor ? s.intake : null;
 
-  const send = (e: React.FormEvent) => {
+  // Opening a real conversation marks it read.
+  useEffect(() => {
+    if (thread.real) markThreadRead(thread.id).then(reloadThreads);
+  }, [thread.real, thread.id, thread.messages.length, reloadThreads]);
+
+  const send = async (e: React.FormEvent) => {
     e.preventDefault();
     const body = draft.trim();
-    if (!body) return;
-    proto.counselorSend(counselor.slug, body);
+    if (!body || sending) return;
+    if (!thread.real) {
+      proto.counselorSend(counselor.slug, body);
+      return setDraft("");
+    }
+    setSending(true);
+    const ok = await sendInThread(thread.id, body);
+    setSending(false);
+    if (!ok) return proto.toast("Your message didn’t send. Please try again.");
     setDraft("");
+    reloadThreads();
   };
 
   return (
@@ -177,7 +205,7 @@ function Conversation({ thread, onBack }: { thread: Thread; onBack: () => void }
                 <Lock size={14} strokeWidth={1.8} aria-hidden="true" />
                 Private between you and {thread.name.split(" ")[0]}
               </span>
-              <Button type="submit" disabled={!draft.trim()}>
+              <Button type="submit" disabled={!draft.trim() || sending}>
                 <Send size={16} strokeWidth={1.8} aria-hidden="true" />
                 Send
               </Button>

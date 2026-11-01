@@ -57,6 +57,7 @@ function fromSeed(c: SeedCounselor): Counselor {
     feeNote: c.feeNote ?? null,
     avatarUrl: (c as { avatarUrl?: string }).avatarUrl ?? null,
     services: [],
+    isSample: true,
     free30: c.offers30 && c.fee30Cents === 0,
     free60: c.offers60 && c.fee60Cents === 0,
     serviceArea: church?.city ?? "",

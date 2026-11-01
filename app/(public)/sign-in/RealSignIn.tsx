@@ -8,7 +8,7 @@ import { signOutEverywhere } from "@/components/AuthSync";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { proto, useProto } from "@/lib/prototype/store";
-import { googleEnabled, supabaseBrowser, useAccountKind, useAuthState, useIntakeSettled } from "@/lib/supabase/client";
+import { googleEnabled, homeFor, supabaseBrowser, useAccountKind, useAuthState, useIntakeSettled } from "@/lib/supabase/client";
 import { GoogleButton } from "./GoogleButton";
 import { safeNext } from "./shared";
 
@@ -36,7 +36,9 @@ export function RealSignIn() {
   // First visit goes through the questions; after that, straight to where they were going.
   // Only clients answer the questions. Counselors, applicants and staff (and the pages they sign in for) skip them.
   const skipQuestions = s?.intake || intakeSettled || kind !== "client" || /^\/(for-counselors|for-churches|church|portal|admin)(\/|#|\?|$)/.test(next);
-  const destination = skipQuestions ? next : `/get-started?next=${encodeURIComponent(next)}`;
+  // "/counselors" is the default when nothing else was asked for: counselors, churches and staff go to their own home.
+  const target = next === "/counselors" && kind !== "client" ? homeFor(kind) : next;
+  const destination = skipQuestions ? target : `/get-started?next=${encodeURIComponent(next)}`;
   // A full page load, so a stalled in-app navigation can never leave them on a loading screen.
   const finish = () => window.location.replace(destination);
 

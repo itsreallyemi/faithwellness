@@ -19,13 +19,12 @@ const tabs: ApplicationStatus[] = ["submitted", "needs_info", "approved", "decli
 const textarea = "min-h-24 w-full resize-y rounded-md border border-border bg-cream px-4 py-3 text-base leading-[1.6] aria-invalid:border-peach-700";
 
 /** FaithWellness staff only. The database also refuses these reads and actions for anyone who isn't an admin. */
-export function AdminView({ bodies }: { bodies: Body[] }) {
+export function AdminView({ bodies, section = "counselors" }: { bodies: Body[]; section?: "counselors" | "churches" }) {
   const auth = useAuthState();
   const [admin, setAdmin] = useState<boolean | null>(null);
   const [apps, setApps] = useState<Application[] | null>(null);
   const [tab, setTab] = useState<ApplicationStatus>("submitted");
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [section, setSection] = useState<"counselors" | "churches">("counselors");
 
   useEffect(() => {
     if (auth !== "signed-in") return;
@@ -74,26 +73,24 @@ export function AdminView({ bodies }: { bodies: Body[] }) {
             ? "Confirm each accreditation with the church or denomination before approving. Approving opens the counselor’s portal. Their profile goes live once they’ve completed it."
             : "Check each church is real and the person registering can act for it. Approving creates the church and opens its dashboard."}
         </p>
-        <div role="tablist" aria-label="What to review" className="mt-1 flex gap-1 border-b border-border-warm">
+        <nav aria-label="What to review" className="mt-1 flex gap-1 border-b border-border-warm">
           {([
             ["counselors", "Counselors"],
             ["churches", "Churches"],
           ] as const).map(([id, label]) => (
-            <button
+            <Link
               key={id}
-              type="button"
-              role="tab"
-              aria-selected={section === id}
-              onClick={() => setSection(id)}
+              href={id === "counselors" ? "/admin" : "/admin/churches"}
+              aria-current={section === id ? "page" : undefined}
               className={cn(
-                "-mb-px min-h-12 cursor-pointer border-b-2 border-transparent px-4 text-[15px] text-slate-600",
-                section === id && "border-peach-500 font-semibold text-slate-900",
+                "-mb-px flex min-h-12 items-center border-b-2 border-transparent px-4 text-[15px] text-slate-600! no-underline",
+                section === id && "border-peach-500 font-semibold text-slate-900!",
               )}
             >
               {label}
-            </button>
+            </Link>
           ))}
-        </div>
+        </nav>
       </header>
 
       {section === "churches" ? (

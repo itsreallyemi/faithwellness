@@ -3,6 +3,7 @@ import { BOOKING_SELECT, type BookingRow, type NewBooking } from "@/lib/bookings
 import { bookableCounselor, cancelBooking, isMemberCare, stillOpen } from "@/lib/server/bookings";
 import { accessTokenFor, createSessionEvents } from "@/lib/server/google";
 import { bookingConfirmed } from "@/lib/server/notify";
+import { addBookingNotes } from "@/lib/server/threads";
 import { adminDb, calendarConfigured } from "@/lib/server/secrets";
 import { supabaseServer } from "@/lib/supabase/server";
 
@@ -93,8 +94,16 @@ export async function POST(request: NextRequest) {
 
   if (body.rescheduleOf) await cancelBooking(body.rescheduleOf, "client", "Rescheduled to a new time.");
 
-  // Emails go out after the response, so the client isn't kept waiting.
-  after(() => bookingConfirmed(created.id, Boolean(body.rescheduleOf)));
+  // Notes in the conversation and emails go out after the response, so the client isn't kept waiting.
+  after(async () => {
+    const facts = { id: created.id, counselor_id: c.id, client_id: user.id, client_name: profile?.full_name ?? "" };
+    await addBookingNotes(
+      facts,
+      body.rescheduleOf ? "Session moved to a new time" : "Session confirmed",
+      { from: "client", text: [body.note, body.offer && !memberCare ? body.offer.note : ""].filter(Boolean).join("\n\n") },
+    );
+    await bookingConfirmed(created.id, Boolean(body.rescheduleOf));
+  });
 
   const { data: booking } = await db.from("bookings").select(BOOKING_SELECT).eq("id", created.id).single();
   return NextResponse.json({ booking: booking as BookingRow });

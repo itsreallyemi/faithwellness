@@ -41,6 +41,8 @@ export type Counselor = {
   timeZone: string;
   availability: AvailabilityRule[];
   services: CounselorService[];
+  /** One of the fictional sample counselors: messaging with them stays a demo in the browser. */
+  isSample: boolean;
   /** Where they are for in-person services, e.g. "Pasadena, CA". */
   serviceArea: string;
   travel: Travel;
