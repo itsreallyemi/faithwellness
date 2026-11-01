@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { CalendarDays, ChevronRight, Eye, EyeOff, MessageCircle, Trash2 } from "lucide-react";
 import { ApplicationSummary, useMyApplication } from "@/components/ApplicationProgress";
+import { ChurchSummary, useMyChurchApplication } from "@/components/ChurchProgress";
 import { useDeviceTimeZone, useViewerTimeZone } from "@/components/LocalTime";
 import { MemberBadge } from "@/components/prototype/MemberBadge";
 import { RequireSignIn } from "@/components/prototype/RequireSignIn";
@@ -42,6 +43,7 @@ function Account({ s }: { s: SignedIn }) {
 
       <Details user={s.user} />
       <CounselorApplication />
+      <ChurchRegistration />
       {authEnabled && <YourRequests />}
       <Sessions s={s} />
       <Memberships s={s} />
@@ -180,6 +182,19 @@ function YourRequests() {
           </li>
         ))}
       </ul>
+    </Section>
+  );
+}
+
+// Church registration --------------------------------------------------------------
+
+/** Only shown to people who have registered a church. */
+function ChurchRegistration() {
+  const mine = useMyChurchApplication();
+  if (!mine?.app) return null;
+  return (
+    <Section id="church-registration" title={`${mine.app.org_name} on FaithWellness`}>
+      <ChurchSummary app={mine.app} members={mine.members} />
     </Section>
   );
 }

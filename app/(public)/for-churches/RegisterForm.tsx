@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { CircleCheck, Clock } from "lucide-react";
+import { ChurchTracker, useMyChurchApplication } from "@/components/ChurchProgress";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { cn } from "@/lib/cn";
@@ -51,6 +52,8 @@ function RealRegister() {
   const s = useProto();
   const [app, setApp] = useState<ChurchApplication | null | "loading">("loading");
   const [editing, setEditing] = useState(false);
+  // How many members have joined, for the tracker's last step.
+  const members = useMyChurchApplication()?.members ?? 0;
 
   useEffect(() => {
     if (auth === "signed-out") return setApp(null);
@@ -84,6 +87,7 @@ function RealRegister() {
 
   if (app && !editing) {
     const org = app.org_name;
+    const tracker = <ChurchTracker app={app} members={members} />;
     const card = (title: string, children: React.ReactNode, good = false) => (
       <Card id="register" as="section" aria-label={title} className="flex scroll-mt-6 flex-col gap-4 self-start">
         <span className={cn("flex size-14 items-center justify-center rounded-lg", good ? "bg-sage-100" : "bg-peach-100")}>
@@ -104,6 +108,7 @@ function RealRegister() {
           <p className="m-0 text-[17px] leading-[1.6] text-slate-600">
             Your church dashboard is ready: approve members, share your member code, and see your counselors.
           </p>
+          {tracker}
           {ownChurch && (
             <Button href={`/church/${ownChurch.slug}`} size="lg" className="self-start">
               Open your church dashboard
@@ -118,6 +123,7 @@ function RealRegister() {
         app.status === "needs_info" ? "We need a little more information" : "We couldn’t approve this registration",
         <>
           {app.admin_note && <p className="m-0 rounded-md border-l-4 border-peach-400 bg-cream px-4 py-3 text-[15px] whitespace-pre-line">{app.admin_note}</p>}
+          {tracker}
           <Button size="lg" className="self-start" onClick={() => setEditing(true)}>
             {app.status === "needs_info" ? "Update our registration" : "Register again"}
           </Button>
@@ -129,8 +135,9 @@ function RealRegister() {
       <>
         <p className="m-0 text-[17px] leading-[1.6] text-slate-600">
           We&rsquo;ve received your registration and will review it within a few days. We&rsquo;ll email {app.email} when
-          your church dashboard is ready.
+          your church dashboard is ready. You can check back here any time.
         </p>
+        {tracker}
         <Button variant="link" className="self-start px-0!" onClick={() => setEditing(true)}>
           Edit our answers
         </Button>

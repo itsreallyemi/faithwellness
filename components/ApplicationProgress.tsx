@@ -38,13 +38,14 @@ export function accreditorName(app: Application) {
     : (accreditingBodies.find((b) => b.slug === app.accrediting_body)?.name ?? app.church_name);
 }
 
-type StepState = "done" | "current" | "attention" | "upcoming";
+export type StepState = "done" | "current" | "attention" | "upcoming";
+export type Step = { title: string; detail: string; state: StepState };
 
 /** Application sent → accreditation check → approved → profile setup → live, with where they are now. */
 export function ApplicationTracker({ app, live }: MyApplication & { app: Application }) {
   const approved = app.status === "approved";
   const checkState: StepState = approved ? "done" : app.status === "submitted" ? "current" : "attention";
-  const steps: { title: string; detail: string; state: StepState }[] = [
+  const steps: Step[] = [
     { title: "Application sent", detail: shortDate(app.submitted_at), state: "done" },
     {
       title: "Accreditation check",
@@ -67,8 +68,13 @@ export function ApplicationTracker({ app, live }: MyApplication & { app: Applica
     { title: "Live on FaithWellness", detail: live ? "Clients can find and book you." : "", state: live ? "done" : "upcoming" },
   ];
 
+  return <StepTracker steps={steps} label="Application progress" />;
+}
+
+/** Numbered steps with ticks for done ones and a highlight on where they are now. Used for counselors and churches. */
+export function StepTracker({ steps, label }: { steps: Step[]; label: string }) {
   return (
-    <ol className="m-0 flex list-none flex-col p-0" aria-label="Application progress">
+    <ol className="m-0 flex list-none flex-col p-0" aria-label={label}>
       {steps.map((step, i) => (
         <li key={step.title} className="flex gap-3" aria-current={step.state === "current" || step.state === "attention" ? "step" : undefined}>
           <div className="flex flex-col items-center">
@@ -105,6 +111,7 @@ export function ApplicationTracker({ app, live }: MyApplication & { app: Applica
     </ol>
   );
 }
+
 
 /** Tracker plus the one thing to do next. Used on the account page and the portal sign-in screen. */
 export function ApplicationSummary({ app, live, hideAction = false }: MyApplication & { app: Application; hideAction?: boolean }) {
