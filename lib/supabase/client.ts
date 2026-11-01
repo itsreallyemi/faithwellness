@@ -99,3 +99,24 @@ export function useOwnAvatar() {
 export function notify(kind: "service-requested" | "service-answered" | "application-decided", id: string) {
   fetch("/api/notify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind, id }) }).catch(() => {});
 }
+
+/** True once the signed-in client has answered or skipped the questions (saved to their account). */
+let intakeSettled = false;
+const intakeListeners = new Set<() => void>();
+
+export function setIntakeSettled(next: boolean) {
+  if (next === intakeSettled) return;
+  intakeSettled = next;
+  intakeListeners.forEach((l) => l());
+}
+
+export function useIntakeSettled() {
+  return useSyncExternalStore(
+    (l) => {
+      intakeListeners.add(l);
+      return () => intakeListeners.delete(l);
+    },
+    () => intakeSettled,
+    () => false,
+  );
+}

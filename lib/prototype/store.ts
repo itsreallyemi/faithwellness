@@ -243,6 +243,8 @@ export const proto = {
   signedOutOnPurpose: false,
   /** The current state, for code outside React such as the real sign-in sync. */
   snapshot: () => get(),
+  /** Listen for changes outside React (the real sign-in sync saves intake answers to the account). */
+  subscribe,
   signIn(user: ProtoUser) {
     proto.signedOutOnPurpose = false;
     set((s) => ({ ...s, user }));

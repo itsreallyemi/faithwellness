@@ -2,7 +2,8 @@
 
 import type { Session } from "@supabase/supabase-js";
 import { useEffect } from "react";
-import { authEnabled, setAccountKind, setAuthState, setOwnAvatar, setOwnCounselorSlug, supabaseBrowser } from "@/lib/supabase/client";
+import { authEnabled, setAccountKind, setAuthState, setIntakeSettled, setOwnAvatar, setOwnCounselorSlug, supabaseBrowser } from "@/lib/supabase/client";
+import { loadIntake, saveIntakeRemote } from "@/lib/supabase/intake";
 import { proto } from "@/lib/prototype/store";
 import { loadClientBookings } from "@/lib/supabase/bookings";
 
@@ -16,12 +17,25 @@ export function AuthSync() {
     if (!authEnabled) return;
     const sb = supabaseBrowser();
     let alive = true;
+    // Who's signed in, and the answers last saved for them, so edits to the questions save to the account.
+    let userId: string | null = null;
+    let lastSavedIntake = "";
+    const stopWatching = proto.subscribe(() => {
+      const intake = proto.snapshot().intake;
+      if (!userId || !intake || JSON.stringify(intake) === lastSavedIntake) return;
+      lastSavedIntake = JSON.stringify(intake);
+      setIntakeSettled(true);
+      void saveIntakeRemote(intake);
+    });
 
     const sync = async (session: Session | null) => {
       if (!alive) return;
       if (!session) {
         // Real bookings belong to the account, not this browser.
         proto.syncRealBookings([]);
+        setIntakeSettled(false);
+        userId = null;
+        lastSavedIntake = "";
         setOwnCounselorSlug(null);
         setOwnAvatar(null);
         setAccountKind("client");
@@ -58,6 +72,18 @@ export function AuthSync() {
       } else {
         setOwnCounselorSlug(null);
       }
+      // Their answers to the questions live on the account, so a new sign-in doesn't ask again.
+      const intake = await loadIntake(id);
+      if (intake?.answers) {
+        lastSavedIntake = JSON.stringify(intake.answers);
+        proto.saveIntake(intake.answers);
+      } else if (!intake && proto.snapshot().intake) {
+        // Answered in this browser before answers were saved to accounts: keep them.
+        await saveIntakeRemote(proto.snapshot().intake);
+      }
+      setIntakeSettled(Boolean(intake || proto.snapshot().intake));
+      userId = id;
+
       // Real bookings with counselors who have a connected calendar, shown alongside prototype ones.
       proto.syncRealBookings(await loadClientBookings(id));
       if (alive) setAuthState("signed-in");
@@ -69,6 +95,7 @@ export function AuthSync() {
     });
     return () => {
       alive = false;
+      stopWatching();
       data.subscription.unsubscribe();
     };
   }, []);

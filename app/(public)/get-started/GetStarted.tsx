@@ -21,6 +21,8 @@ import {
   type Who,
 } from "@/lib/prototype/intake";
 import { proto, useProto } from "@/lib/prototype/store";
+import { authEnabled, setIntakeSettled } from "@/lib/supabase/client";
+import { saveIntakeRemote } from "@/lib/supabase/intake";
 import type { Counselor } from "@/lib/types";
 
 type Props = { counselors: Counselor[]; focusLabels: Record<string, string>; languages: string[] };
@@ -127,7 +129,17 @@ function Questions({ languages, initial, onDone }: { languages: string[]; initia
             Question {step + 1} of {STEPS}
           </span>
           {next && (
-            <Link href={next} className="inline-flex min-h-11 items-center font-semibold">
+            <Link
+              href={next}
+              onClick={() => {
+                // Remembered on the account, so signing in again doesn't bring the questions back.
+                if (authEnabled) {
+                  setIntakeSettled(true);
+                  void saveIntakeRemote(null);
+                }
+              }}
+              className="inline-flex min-h-11 items-center font-semibold"
+            >
               Skip for now
             </Link>
           )}

@@ -8,7 +8,7 @@ import { signOutEverywhere } from "@/components/AuthSync";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { proto, useProto } from "@/lib/prototype/store";
-import { googleEnabled, supabaseBrowser, useAccountKind, useAuthState } from "@/lib/supabase/client";
+import { googleEnabled, supabaseBrowser, useAccountKind, useAuthState, useIntakeSettled } from "@/lib/supabase/client";
 import { GoogleButton } from "./GoogleButton";
 import { safeNext } from "./shared";
 
@@ -23,6 +23,8 @@ export function RealSignIn() {
   const auth = useAuthState();
   const s = useProto();
   const kind = useAccountKind();
+  // Answered or skipped before, on any device (saved to the account).
+  const intakeSettled = useIntakeSettled();
 
   const [step, setStep] = useState<"choose" | "sent">("choose");
   const [email, setEmail] = useState("");
@@ -33,7 +35,7 @@ export function RealSignIn() {
 
   // First visit goes through the questions; after that, straight to where they were going.
   // Only clients answer the questions. Counselors, applicants and staff (and the pages they sign in for) skip them.
-  const skipQuestions = s?.intake || kind !== "client" || /^\/(for-counselors|portal|admin)(\/|#|\?|$)/.test(next);
+  const skipQuestions = s?.intake || intakeSettled || kind !== "client" || /^\/(for-counselors|portal|admin)(\/|#|\?|$)/.test(next);
   const destination = skipQuestions ? next : `/get-started?next=${encodeURIComponent(next)}`;
   // A full page load, so a stalled in-app navigation can never leave them on a loading screen.
   const finish = () => window.location.replace(destination);
