@@ -436,7 +436,11 @@ export const proto = {
       bookings: s.bookings.map((b) => (b.id === bookingId && b.insurance ? { ...b, insurance: { ...b.insurance, status } } : b)),
     }));
   },
-/** Replaces this browser's copies of real bookings with what the database has (on sign-in). */
+  /** Replaces memberships with the account's real ones (on sign-in, and after each change). */
+  syncMemberships(list: ProtoMembership[]) {
+    set((s) => ({ ...s, memberships: list }));
+  },
+  /** Replaces this browser's copies of real bookings with what the database has (on sign-in). */
   syncRealBookings(list: ProtoBooking[]) {
     set((s) => ({ ...s, bookings: [...s.bookings.filter((b) => !b.real), ...list] }));
   },

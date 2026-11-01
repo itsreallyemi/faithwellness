@@ -1,6 +1,6 @@
 import { after, NextResponse, type NextRequest } from "next/server";
 import { BOOKING_SELECT, type BookingRow, type NewBooking } from "@/lib/bookings";
-import { bookableCounselor, cancelBooking, stillOpen } from "@/lib/server/bookings";
+import { bookableCounselor, cancelBooking, isMemberCare, stillOpen } from "@/lib/server/bookings";
 import { accessTokenFor, createSessionEvents } from "@/lib/server/google";
 import { bookingConfirmed } from "@/lib/server/notify";
 import { adminDb, calendarConfigured } from "@/lib/server/secrets";
@@ -41,6 +41,7 @@ export async function POST(request: NextRequest) {
 
   const { data: profile } = await db.from("profiles").select("full_name, time_zone").eq("id", user.id).maybeSingle();
   const fee = duration === 30 ? (c.free_30 ? 0 : c.fee_30_cents) : c.free_60 ? 0 : c.fee_60_cents;
+  const memberCare = await isMemberCare(c, user.id);
   const { data: created, error } = await db
     .from("bookings")
     .insert({
@@ -50,11 +51,12 @@ export async function POST(request: NextRequest) {
       end_utc: new Date(start.getTime() + duration * 60_000).toISOString(),
       duration,
       fee_cents: fee,
-      member_care: Boolean(body.memberCare),
+      member_care: memberCare,
       note: (body.note ?? "").slice(0, 2000),
-      offer_cents: body.offer ? Math.max(0, Math.round(body.offer.cents)) : null,
-      offer_note: body.offer?.note?.slice(0, 1000) ?? "",
-      offer_status: body.offer ? "pending" : null,
+      // Member care sessions are already free, so there's nothing to offer.
+      offer_cents: body.offer && !memberCare ? Math.max(0, Math.round(body.offer.cents)) : null,
+      offer_note: body.offer && !memberCare ? body.offer.note.slice(0, 1000) : "",
+      offer_status: body.offer && !memberCare ? "pending" : null,
       insurance_provider: body.insurance?.provider ?? null,
       insurance_member_last4: body.insurance?.memberIdLast4?.slice(-4) ?? null,
       insurance_group: body.insurance?.group ?? null,

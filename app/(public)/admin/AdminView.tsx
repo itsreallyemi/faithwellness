@@ -11,6 +11,7 @@ import { cn } from "@/lib/cn";
 import { NOT_LISTED, roleLabel, shortDate, statusLabel, type Application, type ApplicationStatus } from "@/lib/applications";
 import { contactEmail } from "@/lib/site";
 import { authEnabled, notify, supabaseBrowser, useAuthState } from "@/lib/supabase/client";
+import { ChurchApplications } from "./ChurchApplications";
 
 type Body = { slug: string; name: string };
 
@@ -24,6 +25,7 @@ export function AdminView({ bodies }: { bodies: Body[] }) {
   const [apps, setApps] = useState<Application[] | null>(null);
   const [tab, setTab] = useState<ApplicationStatus>("submitted");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [section, setSection] = useState<"counselors" | "churches">("counselors");
 
   useEffect(() => {
     if (auth !== "signed-in") return;
@@ -64,12 +66,40 @@ export function AdminView({ bodies }: { bodies: Body[] }) {
     <>
       <header className="flex flex-col gap-3">
         <span className="label-overline text-peach-700!">FaithWellness admin</span>
-        <h1 className="m-0 font-display text-[32px] leading-[1.1] md:text-[40px]">Counselor applications</h1>
+        <h1 className="m-0 font-display text-[32px] leading-[1.1] md:text-[40px]">
+          {section === "counselors" ? "Counselor applications" : "Church registrations"}
+        </h1>
         <p className="m-0 max-w-[720px] text-slate-600">
-          Confirm each accreditation with the church or denomination before approving. Approving opens the counselor&rsquo;s
-          portal. Their profile goes live once they&rsquo;ve completed it.
+          {section === "counselors"
+            ? "Confirm each accreditation with the church or denomination before approving. Approving opens the counselor’s portal. Their profile goes live once they’ve completed it."
+            : "Check each church is real and the person registering can act for it. Approving creates the church and opens its dashboard."}
         </p>
+        <div role="tablist" aria-label="What to review" className="mt-1 flex gap-1 border-b border-border-warm">
+          {([
+            ["counselors", "Counselors"],
+            ["churches", "Churches"],
+          ] as const).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={section === id}
+              onClick={() => setSection(id)}
+              className={cn(
+                "-mb-px min-h-12 cursor-pointer border-b-2 border-transparent px-4 text-[15px] text-slate-600",
+                section === id && "border-peach-500 font-semibold text-slate-900",
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </header>
+
+      {section === "churches" ? (
+        <ChurchApplications />
+      ) : (
+        <>
 
       <div className="flex flex-wrap gap-2" role="group" aria-label="Show applications">
         {tabs.map((t) => (
@@ -130,6 +160,8 @@ export function AdminView({ bodies }: { bodies: Body[] }) {
           <Card className="hidden text-slate-600 lg:block">Choose an application to review it.</Card>
         )}
       </div>
+        </>
+      )}
     </>
   );
 }

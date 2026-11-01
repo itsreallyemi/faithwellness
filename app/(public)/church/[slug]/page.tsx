@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import seed from "@/supabase/seed-data.json";
-import { getCounselors } from "@/lib/counselors";
+import { getChurch, getCounselors } from "@/lib/counselors";
 import { memberCareChurch } from "@/lib/prototype/member-care";
 import { ChurchAdminView, type AdminCounselor } from "./ChurchAdminView";
 
@@ -10,8 +10,8 @@ export const metadata: Metadata = { title: "Church admin", robots: { index: fals
 type Props = { params: Promise<{ slug: string }> };
 
 export default async function ChurchAdminPage({ params }: Props) {
-  const [{ slug }, counselors] = await Promise.all([params, getCounselors()]);
-  const church = counselors.find((c) => c.church?.slug === slug)?.church ?? seed.churches.find((ch) => ch.slug === slug);
+  const { slug } = await params;
+  const [counselors, church] = await Promise.all([getCounselors(), getChurch(slug)]);
   if (!church) notFound();
 
   const ours: AdminCounselor[] = counselors

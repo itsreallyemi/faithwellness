@@ -53,7 +53,13 @@ export function useAuthState() {
  * What kind of account is signed in. Only clients are walked through the "find a counselor" questions;
  * counselors (and people who've applied), FaithWellness staff and, later, church admins skip them.
  */
-export type AccountKind = "client" | "provider" | "staff";
+export type AccountKind = "client" | "provider" | "staff" | "church";
+
+/** The church a church admin manages (from public.my_church), or null. Set at sign-in, before signed-in. */
+export let ownChurch: { slug: string; name: string } | null = null;
+export function setOwnChurch(church: { slug: string; name: string } | null) {
+  ownChurch = church;
+}
 let accountKind: AccountKind = "client";
 const kindListeners = new Set<() => void>();
 
@@ -96,7 +102,10 @@ export function useOwnAvatar() {
 }
 
 /** Asks the server to email whoever should hear about a change just saved. Fire and forget. */
-export function notify(kind: "service-requested" | "service-answered" | "application-decided", id: string) {
+export function notify(
+  kind: "service-requested" | "service-answered" | "application-decided" | "church-application-decided",
+  id: string,
+) {
   fetch("/api/notify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind, id }) }).catch(() => {});
 }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CircleAlert, CircleCheck, Clock } from "lucide-react";
 import { MemberBadge } from "@/components/prototype/MemberBadge";
 import { RequireSignIn } from "@/components/prototype/RequireSignIn";
@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { codeMatches, memberCareChurch } from "@/lib/prototype/member-care";
 import { membershipStatus, proto, type ProtoMembership } from "@/lib/prototype/store";
+import { authEnabled } from "@/lib/supabase/client";
+import { requestMembershipReal } from "@/lib/supabase/memberships";
 
 /** A church's member link: /join/grace-fellowship?code=GRACE2026. Sends a membership request. */
 export function JoinView({ churchSlug, code }: { churchSlug: string; code: string }) {
@@ -15,16 +17,29 @@ export function JoinView({ churchSlug, code }: { churchSlug: string; code: strin
 }
 
 function Join({ churchSlug, code, memberships }: { churchSlug: string; code: string; memberships: ProtoMembership[] }) {
-  const church = memberCareChurch(churchSlug);
-  const valid = Boolean(church && codeMatches(church, code));
+  const sample = memberCareChurch(churchSlug);
   const current = memberships.find((m) => m.churchSlug === churchSlug);
   const status = current && membershipStatus(current);
   const active = status === "pending" || status === "verified";
+  // Real accounts: the database checks the code and sends the request, so codes never reach the browser.
+  const [real, setReal] = useState<"checking" | "ok" | "wrong">("checking");
+  const asked = useRef(false);
+  const church = current ? { slug: current.churchSlug, name: current.churchName } : sample;
+  const valid = authEnabled ? real === "ok" : Boolean(sample && codeMatches(sample, code));
 
   // A valid link sends a request, unless one is already open or approved.
   useEffect(() => {
-    if (church && valid && !active) proto.requestMembership(church.slug, church.name);
-  }, [church, valid, active]);
+    if (asked.current) return;
+    asked.current = true;
+    if (!authEnabled) {
+      if (sample && valid && !active) proto.requestMembership(sample.slug, sample.name);
+      return;
+    }
+    if (active) return setReal("ok");
+    requestMembershipReal(churchSlug, code).then((problem) => setReal(problem ? "wrong" : "ok"));
+  }, [sample, valid, active, churchSlug, code]);
+
+  if (authEnabled && real === "checking") return <Card aria-busy="true" className="h-64 animate-pulse bg-cream-200!" />;
 
   if (!church || (!valid && !active)) {
     return (

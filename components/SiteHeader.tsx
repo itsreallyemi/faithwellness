@@ -11,7 +11,7 @@ import { initialsFor } from "@/components/ui/Avatar";
 import { Logo } from "@/components/ui/Logo";
 import { cn } from "@/lib/cn";
 import { membershipStatus, useProto } from "@/lib/prototype/store";
-import { useAccountKind, useOwnAvatar } from "@/lib/supabase/client";
+import { ownChurch, ownCounselorSlug, useAccountKind, useOwnAvatar } from "@/lib/supabase/client";
 
 type NavLink = { href: string; label: string; match: (p: string) => boolean };
 
@@ -41,7 +41,26 @@ export function SiteHeader() {
   // "Your answers and matches" is for clients only.
   const isClient = kind === "client";
   // Counselors (and applicants) get a way back to their portal; FaithWellness staff to admin.
-  const workspace = kind === "provider" ? { href: "/portal", label: "Counselor portal" } : kind === "staff" ? { href: "/admin", label: "Admin" } : null;
+  const workspace =
+    kind === "provider"
+      ? { href: "/portal", label: "Counselor portal" }
+      : kind === "staff"
+        ? { href: "/admin", label: "Admin" }
+        : kind === "church" && ownChurch
+          ? { href: `/church/${ownChurch.slug}`, label: "Church dashboard" }
+          : null;
+  // Who's signed in, at a glance. Applicants are "provider" too but have no counselor profile yet.
+  // (Church admins get "Church" once church accounts are real.)
+  const role =
+    kind === "staff" ? "Admin" : kind === "church" ? "Church" : kind === "provider" ? (ownCounselorSlug ? "Counselor" : "Applicant") : "Member";
+  // Each role has its own colour, so it's clear at a glance who's signed in.
+  const roleColor = {
+    Member: "bg-peach-100 text-peach-800",
+    Counselor: "bg-sage-100 text-sage-700",
+    Applicant: "bg-cream-200 text-slate-900",
+    Church: "bg-[#E8EEF8] text-[#2B4A7A]",
+    Admin: "bg-slate-900 text-white",
+  }[role];
   const [open, setOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const accountRef = useRef<HTMLDivElement>(null);
@@ -89,25 +108,24 @@ export function SiteHeader() {
         <div className="ml-auto hidden items-center gap-3 md:flex">
           {user ? (
             <>
-              {workspace && (
-                <Button variant="secondary" href={workspace.href}>
-                  {workspace.label}
-                </Button>
-              )}
               <div ref={accountRef} className="relative">
+                {/* One pill: who they are (role) and their photo. It opens the account menu, which links to their portal. */}
                 <button
                   type="button"
                   aria-expanded={accountOpen}
-                  aria-label={`Your account (${user.name})`}
+                  aria-label={`Your account: ${user.name}, ${role}`}
                   onClick={() => setAccountOpen((o) => !o)}
-                  className="flex size-11 cursor-pointer items-center justify-center overflow-hidden rounded-md bg-cream-200 text-sm font-bold"
+                  className={cn("flex min-h-11 cursor-pointer items-center gap-2 rounded-pill py-1 pr-4 pl-1 hover:brightness-95", roleColor)}
                 >
-                  {avatar ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={avatar} alt="" className="h-full w-full object-cover" />
-                  ) : (
-                    initialsFor(user.name)
-                  )}
+                  <span className="flex size-9 flex-none items-center justify-center overflow-hidden rounded-full bg-cream-200 text-sm font-bold text-slate-900 ring-2 ring-white">
+                    {avatar ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={avatar} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      initialsFor(user.name)
+                    )}
+                  </span>
+                  <span className="text-[15px] font-semibold">{role}</span>
                 </button>
                 {accountOpen && (
                   <div className="absolute top-full right-0 z-20 mt-2 w-64 rounded-lg border border-border-warm bg-white p-2 shadow-raised">
@@ -186,7 +204,9 @@ export function SiteHeader() {
           {user && (
             <div className="flex flex-col gap-2 border-b border-divider py-3">
               <span>
-                <b className="block text-[15px]">{user.name}</b>
+                <b className="block text-[15px]">
+                  {user.name} <span className="font-normal text-slate-600">· {role}</span>
+                </b>
                 <span className="text-[13px] text-slate-600">{user.email}</span>
               </span>
               {s?.memberships.filter((m) => membershipStatus(m) === "verified").map((m) => <MemberBadge key={m.churchSlug} churchName={m.churchName} className="self-start" />)}

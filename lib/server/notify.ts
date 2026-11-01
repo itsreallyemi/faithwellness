@@ -206,3 +206,40 @@ export async function sendSessionReminders(now = new Date()) {
   }
   return sent;
 }
+
+/** FaithWellness reviewed a church registration: tell the person who registered. */
+export async function churchApplicationDecided(applicationId: string) {
+  try {
+    const { data: a } = await adminDb()
+      .from("church_applications")
+      .select("org_name, contact_name, email, status, admin_note, church:churches(slug)")
+      .eq("id", applicationId)
+      .maybeSingle();
+    if (!a) return;
+    const app = a as unknown as { org_name: string; contact_name: string; email: string; status: string; admin_note: string; church: { slug: string } | null };
+    const hi = `Hi ${firstName(app.contact_name)},`;
+    if (app.status === "approved") {
+      await sendEmail({
+        to: app.email,
+        subject: `${app.org_name} is on FaithWellness`,
+        body: `${hi}\n\nWelcome. We've approved ${app.org_name}, and your church dashboard is ready.\n\nSign in with this email address to approve members, share your member code, and see your church's counselors.`,
+        button: { label: "Open your church dashboard", href: app.church ? `${SITE}/church/${app.church.slug}` : `${SITE}/for-churches` },
+      });
+    } else if (app.status === "needs_info") {
+      await sendEmail({
+        to: app.email,
+        subject: `A question about ${app.org_name}'s registration`,
+        body: `${hi}\n\nThank you for registering ${app.org_name} with FaithWellness. Before we can finish, we need a little more information:\n\n${app.admin_note}`,
+        button: { label: "Update your registration", href: `${SITE}/for-churches#register` },
+      });
+    } else if (app.status === "declined") {
+      await sendEmail({
+        to: app.email,
+        subject: `${app.org_name}'s FaithWellness registration`,
+        body: `${hi}\n\nThank you for registering ${app.org_name} with FaithWellness. We're not able to approve it at this time.\n\n${app.admin_note}\n\nIf you have questions, just reply to this email.`,
+      });
+    }
+  } catch (e) {
+    console.error("churchApplicationDecided email", e instanceof Error ? e.message : e);
+  }
+}

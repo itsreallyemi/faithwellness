@@ -2,7 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { createClient } from "@supabase/supabase-js";
 import seed from "@/supabase/seed-data.json";
-import type { Counselor, FocusArea, ServiceType } from "@/lib/types";
+import type { Church, Counselor, FocusArea, ServiceType } from "@/lib/types";
 import { COUNSELOR_SELECT, fromRow, type CounselorRow } from "@/lib/counselor-row";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -71,3 +71,10 @@ function fromSeed(c: SeedCounselor): Counselor {
     })),
   };
 }
+
+/** One church by slug (public details only). Falls back to the seed data without Supabase. */
+export const getChurch = cache(async (slug: string): Promise<Church | null> => {
+  if (!usingSupabase) return seed.churches.find((c) => c.slug === slug) ?? null;
+  const { data } = await db().from("churches").select("slug, name, city, denomination").eq("slug", slug).maybeSingle();
+  return data;
+});

@@ -1,9 +1,9 @@
 import { after, NextResponse, type NextRequest } from "next/server";
-import { applicationDecided, serviceAnswered, serviceRequested } from "@/lib/server/notify";
+import { applicationDecided, churchApplicationDecided, serviceAnswered, serviceRequested } from "@/lib/server/notify";
 import { adminDb } from "@/lib/server/secrets";
 import { supabaseServer } from "@/lib/supabase/server";
 
-type Kind = "service-requested" | "service-answered" | "application-decided";
+type Kind = "service-requested" | "service-answered" | "application-decided" | "church-application-decided";
 
 /**
  * Called by the browser right after something it saved through Supabase (a service request, a reply, an
@@ -25,10 +25,10 @@ export async function POST(request: NextRequest) {
     const allowed = kind === "service-requested" ? r?.client_id === user.id : r?.counselor_id === user.id;
     if (!allowed) return NextResponse.json({ ok: false }, { status: 404 });
     after(() => (kind === "service-requested" ? serviceRequested(id) : serviceAnswered(id)));
-  } else if (kind === "application-decided") {
+  } else if (kind === "application-decided" || kind === "church-application-decided") {
     const { data: me } = await db.from("profiles").select("role").eq("id", user.id).maybeSingle();
     if (me?.role !== "admin") return NextResponse.json({ ok: false }, { status: 403 });
-    after(() => applicationDecided(id));
+    after(() => (kind === "application-decided" ? applicationDecided(id) : churchApplicationDecided(id)));
   } else {
     return NextResponse.json({ ok: false }, { status: 400 });
   }

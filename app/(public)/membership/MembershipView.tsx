@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CalendarClock, CircleAlert, Clock, EyeOff, Gift } from "lucide-react";
 import { MemberBadge } from "@/components/prototype/MemberBadge";
 import { RequireSignIn } from "@/components/prototype/RequireSignIn";
@@ -11,17 +11,30 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { codeMatches, memberCareChurch, memberCareChurches } from "@/lib/prototype/member-care";
 import { isUpForRenewal, membershipStatus, proto, type ProtoMembership } from "@/lib/prototype/store";
+import { authEnabled } from "@/lib/supabase/client";
+import { leaveMembershipReal, memberCareChurchList, requestMembershipReal } from "@/lib/supabase/memberships";
 
 /** Only allow in-app paths as the return address. */
 const safeNext = (n: string | null) => (n && n.startsWith("/") && !n.startsWith("//") ? n : null);
 
 const longDate = (iso: string) => new Date(iso).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 
+type ChurchOption = { slug: string; name: string };
+
 export function MembershipView() {
+  // Real accounts: churches offering member care come from the database (codes stay private there).
+  const [realChurches, setRealChurches] = useState<ChurchOption[] | null>(null);
+  useEffect(() => {
+    if (authEnabled) memberCareChurchList().then(setRealChurches);
+  }, []);
+  const offered: ChurchOption[] = authEnabled ? (realChurches ?? []) : memberCareChurches;
   return (
     <RequireSignIn>
       {({ memberships }) => {
-        const available = memberCareChurches.filter((c) => !memberships.some((m) => m.churchSlug === c.slug));
+        // A church can be requested again after a decline, an ending or an expiry.
+        const active = (slug: string) =>
+          memberships.some((m) => m.churchSlug === slug && ["pending", "verified"].includes(membershipStatus(m)));
+        const available = offered.filter((c) => !active(c.slug));
         return (
           <div className="flex flex-col gap-6">
             <div className="flex flex-col gap-2">
@@ -40,10 +53,10 @@ export function MembershipView() {
                 ))}
               </ul>
             )}
-            {available.length > 0 ? (
+            {authEnabled && realChurches === null ? null : available.length > 0 ? (
               <CodeForm churches={available} first={memberships.length === 0} />
             ) : (
-              <p className="m-0 text-sm text-slate-600">You&rsquo;ve added every church that offers member care in this prototype.</p>
+              <p className="m-0 text-sm text-slate-600">You&rsquo;ve added every church that offers member care.</p>
             )}
             <PrivacyNote />
           </div>
@@ -79,6 +92,7 @@ function StatusBadge({ status, renewal }: { status: Status; renewal: boolean }) 
 }
 
 function MembershipCard({ membership: m }: { membership: ProtoMembership }) {
+  const router = useRouter();
   const [confirmLeave, setConfirmLeave] = useState(false);
   const status = membershipStatus(m);
   const renewal = isUpForRenewal(m);
@@ -160,6 +174,8 @@ function MembershipCard({ membership: m }: { membership: ProtoMembership }) {
             variant="link"
             className="px-0!"
             onClick={() => {
+              // Real requests need the member code again, so they go back to the form with this church chosen.
+              if (authEnabled) return router.push(`/membership?church=${m.churchSlug}#add-church`);
               proto.requestMembership(m.churchSlug, m.churchName);
               proto.toast(`Request sent to ${m.churchName}.`);
             }}
@@ -183,7 +199,13 @@ function MembershipCard({ membership: m }: { membership: ProtoMembership }) {
             </p>
           )}
           <div className="flex flex-wrap gap-3">
-            <Button variant="secondary" onClick={() => proto.leaveMembership(m.churchSlug)}>
+            <Button
+              variant="secondary"
+              onClick={async () => {
+                if (!authEnabled) return proto.leaveMembership(m.churchSlug);
+                if (!(await leaveMembershipReal(m.churchSlug))) proto.toast("That didn’t work. Please try again.");
+              }}
+            >
               {status === "pending" ? "Cancel request" : "Remove membership"}
             </Button>
             <Button variant="link" onClick={() => setConfirmLeave(false)}>
@@ -193,7 +215,8 @@ function MembershipCard({ membership: m }: { membership: ProtoMembership }) {
         </div>
       )}
 
-      <ChurchControls membership={m} />
+      {/* Prototype only: real churches answer from their own dashboard. */}
+      {!authEnabled && <ChurchControls membership={m} />}
     </Card>
   );
 }
@@ -251,21 +274,32 @@ function ChurchControls({ membership: m }: { membership: ProtoMembership }) {
   );
 }
 
-function CodeForm({ churches, first }: { churches: typeof memberCareChurches; first: boolean }) {
+function CodeForm({ churches, first }: { churches: ChurchOption[]; first: boolean }) {
   const router = useRouter();
   const params = useSearchParams();
   const next = safeNext(params.get("next"));
-  const preset = memberCareChurch(params.get("church"));
-  const [church, setChurch] = useState(preset && churches.includes(preset) ? preset.slug : "");
+  const preset = churches.find((c) => c.slug === params.get("church"));
+  const [church, setChurch] = useState(preset?.slug ?? "");
+  const [sending, setSending] = useState(false);
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const c = memberCareChurch(church);
+    const c = churches.find((x) => x.slug === church);
     if (!c) return setError("Choose your church.");
-    if (!codeMatches(c, code)) return setError(`That code doesn’t match ${c.name}. Ask your church office for your member code.`);
-    proto.requestMembership(c.slug, c.name);
+    const wrongCode = `That code doesn’t match ${c.name}. Ask your church office for your member code.`;
+    if (authEnabled) {
+      // Checked by the database, so codes never reach the browser.
+      setSending(true);
+      const problem = await requestMembershipReal(c.slug, code);
+      setSending(false);
+      if (problem) return setError(problem === "wrong-code" ? wrongCode : problem);
+    } else {
+      const sample = memberCareChurch(c.slug);
+      if (!sample || !codeMatches(sample, code)) return setError(wrongCode);
+      proto.requestMembership(c.slug, c.name);
+    }
     proto.toast(`Request sent. ${c.name} will confirm you’re a member.`);
     setChurch("");
     setCode("");
@@ -325,19 +359,21 @@ function CodeForm({ churches, first }: { churches: typeof memberCareChurches; fi
             </p>
           )}
         </div>
-        <Button type="submit" size="lg">
-          Request member access
+        <Button type="submit" size="lg" disabled={sending}>
+          {sending ? "Sending…" : "Request member access"}
         </Button>
         <p className="m-0 text-[13px] text-slate-600">The church confirms you&rsquo;re a member before sessions become free.</p>
       </form>
-      <div className="flex flex-col gap-1 rounded-md border border-dashed border-peach-400 bg-peach-50 px-4 py-3 text-sm text-peach-800">
-        <span>Prototype sample codes:</span>
-        {memberCareChurches.map((c) => (
-          <span key={c.slug}>
-            {c.name}: <b>{c.code}</b>
-          </span>
-        ))}
-      </div>
+      {!authEnabled && (
+        <div className="flex flex-col gap-1 rounded-md border border-dashed border-peach-400 bg-peach-50 px-4 py-3 text-sm text-peach-800">
+          <span>Prototype sample codes:</span>
+          {memberCareChurches.map((c) => (
+            <span key={c.slug}>
+              {c.name}: <b>{c.code}</b>
+            </span>
+          ))}
+        </div>
+      )}
     </Card>
   );
 }

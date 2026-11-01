@@ -2,8 +2,18 @@
 
 import type { Session } from "@supabase/supabase-js";
 import { useEffect } from "react";
-import { authEnabled, setAccountKind, setAuthState, setIntakeSettled, setOwnAvatar, setOwnCounselorSlug, supabaseBrowser } from "@/lib/supabase/client";
+import {
+  authEnabled,
+  setAccountKind,
+  setAuthState,
+  setIntakeSettled,
+  setOwnAvatar,
+  setOwnChurch,
+  setOwnCounselorSlug,
+  supabaseBrowser,
+} from "@/lib/supabase/client";
 import { loadIntake, saveIntakeRemote } from "@/lib/supabase/intake";
+import { loadMemberships } from "@/lib/supabase/memberships";
 import { proto } from "@/lib/prototype/store";
 import { loadClientBookings } from "@/lib/supabase/bookings";
 
@@ -37,6 +47,7 @@ export function AuthSync() {
         userId = null;
         lastSavedIntake = "";
         setOwnCounselorSlug(null);
+        setOwnChurch(null);
         setOwnAvatar(null);
         setAccountKind("client");
         if (proto.snapshot().user) {
@@ -57,9 +68,13 @@ export function AuthSync() {
         proto.signIn({ name, email, timeZone: current?.email === email ? current.timeZone : undefined });
       }
 
-      // Counselors and applicants are "provider", admins "staff". Set before signed-in, so /sign-in knows where to send them.
+      // Counselors and applicants are "provider", admins "staff", church admins "church". Set before signed-in, so
+      // /sign-in knows where to send them.
+      const { data: church } = await sb.rpc("my_church").maybeSingle();
+      setOwnChurch(church ? { slug: (church as { slug: string }).slug, name: (church as { name: string }).name } : null);
       if (profile?.role === "admin") setAccountKind("staff");
       else if (profile?.role === "counselor") setAccountKind("provider");
+      else if (church) setAccountKind("church");
       else {
         const { data: application } = await sb.from("counselor_applications").select("id").maybeSingle();
         setAccountKind(application ? "provider" : "client");
@@ -84,6 +99,9 @@ export function AuthSync() {
       setIntakeSettled(Boolean(intake || proto.snapshot().intake));
       userId = id;
 
+      // Church memberships from the database (for member care and the member badge).
+      proto.syncMemberships(await loadMemberships(id));
+
       // Real bookings with counselors who have a connected calendar, shown alongside prototype ones.
       proto.syncRealBookings(await loadClientBookings(id));
       if (alive) setAuthState("signed-in");
@@ -107,6 +125,7 @@ export function AuthSync() {
 export async function signOutEverywhere() {
   if (authEnabled) await supabaseBrowser().auth.signOut();
   setOwnCounselorSlug(null);
+  setOwnChurch(null);
   setAccountKind("client");
   setOwnAvatar(null);
   proto.signOut();

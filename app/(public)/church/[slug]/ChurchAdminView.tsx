@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Copy, EyeOff, Search, UserPlus } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
@@ -18,6 +18,7 @@ import {
   type ProtoRosterMember,
   type ProtoState,
 } from "@/lib/prototype/store";
+import { authEnabled, ownChurch, supabaseBrowser, useAccountKind, useAuthState } from "@/lib/supabase/client";
 import type { Church } from "@/lib/types";
 
 export type AdminCounselor = { slug: string; name: string; title: string; avatarUrl: string | null; avatarTint: string };
@@ -35,18 +36,111 @@ const YOU = "you";
 
 const shortDate = (iso: string) => new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
-export function ChurchAdminView({ church, counselors, code, churches }: Props) {
+export function ChurchAdminView(props: Props) {
+  const auth = useAuthState();
+  const kind = useAccountKind();
+  if (!authEnabled) return <PrototypeChurchAdmin {...props} />;
+  if (auth === "loading") return <div aria-busy="true" className="h-96 animate-pulse rounded-xl bg-cream-200" />;
+  if (kind === "church" && ownChurch?.slug === props.church.slug) return <RealChurchAdmin {...props} />;
+  return (
+    <Card className="flex flex-col items-start gap-4">
+      <span className="label-overline">Church admin</span>
+      <h1 className="m-0 font-display text-[30px] leading-[1.1]">{props.church.name}</h1>
+      <p className="m-0 text-slate-600">
+        This page is only for {props.church.name}&rsquo;s admins.{" "}
+        {auth === "signed-out" ? "Sign in with your church admin account to see it." : "Your account isn’t one of them."}
+      </p>
+      <div className="flex flex-wrap gap-3">
+        {auth === "signed-out" && <Button href={`/sign-in?next=${encodeURIComponent(`/church/${props.church.slug}`)}`}>Sign in</Button>}
+        <Button href="/for-churches" variant="secondary">
+          Bring your church to FaithWellness
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
+function Header({ church }: { church: Church }) {
+  return (
+    <header className="flex flex-col gap-2">
+      <span className="label-overline">Church admin</span>
+      <h1 className="m-0 font-display text-[32px] leading-[1.1] md:text-[40px]">{church.name}</h1>
+      <span className="text-slate-600">
+        {church.city} · {church.denomination}
+      </span>
+    </header>
+  );
+}
+
+/** The real dashboard, for this church's signed-in admins. Members come from church_memberships. */
+function RealChurchAdmin({ church, counselors }: Props) {
+  const [rows, setRows] = useState<Row[] | null>(null);
+  const [code, setCode] = useState<string | null>(null);
+  const [sessions, setSessions] = useState(0);
+
+  const load = useCallback(async () => {
+    const sb = supabaseBrowser();
+    const [{ data: mine }, { data: members }, { data: count }] = await Promise.all([
+      sb.rpc("my_church").maybeSingle(),
+      sb.from("church_memberships").select("id, status, member_name, member_email, requested_at, updated_at, expires_at").order("requested_at", { ascending: false }),
+      sb.rpc("my_church_member_sessions_this_month"),
+    ]);
+    setCode((mine as { member_code: string | null } | null)?.member_code ?? null);
+    setSessions((count as number | null) ?? 0);
+    setRows(
+      ((members as RealMember[] | null) ?? []).map((m) => ({
+        id: m.id,
+        name: m.member_name || "Member",
+        email: m.member_email,
+        status: m.status,
+        requestedIso: m.requested_at,
+        updatedIso: m.updated_at,
+        expiresIso: m.expires_at ?? undefined,
+      })),
+    );
+  }, []);
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const set = async (row: Row, status: ProtoMembership["status"], message: string) => {
+    const { error } = await supabaseBrowser().rpc("decide_membership", { p_id: row.id, p_status: status });
+    proto.toast(error ? "That didn’t save. Please try again." : `${message}: ${row.name}`);
+    load();
+  };
+
+  return (
+    <div className="flex flex-col gap-6">
+      <Header church={church} />
+      {!rows ? (
+        <div aria-hidden="true" className="h-64 rounded-xl bg-cream-200" />
+      ) : code ? (
+        <DashboardBody rows={rows} set={set} sessionsThisMonth={sessions} church={church} code={code} />
+      ) : (
+        <NoMemberCare church={church} />
+      )}
+      <Counselors counselors={counselors} memberCare={Boolean(code)} />
+    </div>
+  );
+}
+
+type RealMember = {
+  id: string;
+  status: ProtoMembership["status"];
+  member_name: string;
+  member_email: string;
+  requested_at: string;
+  updated_at: string;
+  expires_at: string | null;
+};
+
+/** PROTOTYPE ONLY (no Supabase keys): any church's page, with fictional members. */
+function PrototypeChurchAdmin({ church, counselors, code, churches }: Props) {
   const s = useProto();
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-2">
-        <span className="label-overline">Church admin</span>
-        <h1 className="m-0 font-display text-[32px] leading-[1.1] md:text-[40px]">{church.name}</h1>
-        <span className="text-slate-600">
-          {church.city} · {church.denomination}
-        </span>
-      </header>
+      <Header church={church} />
 
       <ChurchSwitcher current={church} churches={churches} />
 
@@ -110,15 +204,34 @@ function Dashboard({ s, church, code }: { s: ProtoState; church: Church; code: s
     proto.toast(`${message}: ${row.name}`);
   };
 
+  const yourSessions = s.bookings.filter(
+    (b) => b.memberCare && b.status === "confirmed" && new Date(b.startIso).getMonth() === new Date().getMonth(),
+  ).length;
+
+  return (
+    <DashboardBody rows={rows} set={set} sessionsThisMonth={sampleSessionsThisMonth(church.slug) + yourSessions} church={church} code={code} />
+  );
+}
+
+/** Totals, requests, renewals, members and the member code. Shared by the real and prototype dashboards. */
+function DashboardBody({
+  rows,
+  set,
+  sessionsThisMonth,
+  church,
+  code,
+}: {
+  rows: Row[];
+  set: (row: Row, status: ProtoMembership["status"], message: string) => void;
+  sessionsThisMonth: number;
+  church: Church;
+  code: string;
+}) {
   const status = (r: Row) => membershipStatus(r);
   const pending = rows.filter((r) => status(r) === "pending");
   const renewal = rows.filter((r) => isUpForRenewal(r) || status(r) === "expired");
   const members = rows.filter((r) => status(r) === "verified" && !isUpForRenewal(r));
   const past = rows.filter((r) => status(r) === "declined" || status(r) === "ended");
-
-  const yourSessions = s.bookings.filter(
-    (b) => b.memberCare && b.status === "confirmed" && new Date(b.startIso).getMonth() === new Date().getMonth(),
-  ).length;
 
   return (
     <>
@@ -130,7 +243,7 @@ function Dashboard({ s, church, code }: { s: ProtoState; church: Church; code: s
           <Stat label="Approved members" value={members.length + renewal.filter((r) => status(r) === "verified").length} />
           <Stat label="Waiting for you" value={pending.length} highlight={pending.length > 0} />
           <Stat label="Due for renewal" value={renewal.length} highlight={renewal.length > 0} />
-          <Stat label="Member sessions this month" value={sampleSessionsThisMonth(church.slug) + yourSessions} />
+          <Stat label="Member sessions this month" value={sessionsThisMonth} />
         </ul>
         <p className="m-0 flex items-start gap-2 text-sm text-slate-600">
           <EyeOff size={18} strokeWidth={1.8} className="mt-0.5 flex-none text-sage-700" aria-hidden="true" />
