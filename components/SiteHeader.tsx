@@ -45,7 +45,7 @@ export function SiteHeader() {
     kind === "provider"
       ? { href: "/portal", label: "Counselor portal" }
       : kind === "staff"
-        ? { href: "/admin", label: "Admin" }
+        ? { href: "/admin", label: "Admin dashboard" }
         : kind === "church" && ownChurch
           ? { href: `/church/${ownChurch.slug}`, label: "Church dashboard" }
           : null;
@@ -76,6 +76,13 @@ export function SiteHeader() {
   }, [accountOpen]);
 
   const links = user ? clientLinks : publicLinks;
+  // Account menu items (desktop dropdown and phone menu). The workspace link comes first.
+  const accountLinks: { href: string; label: string; match: (p: string) => boolean; strong?: boolean }[] = [
+    ...(workspace ? [{ ...workspace, match: (p: string) => p.startsWith(workspace.href), strong: true }] : []),
+    { href: "/account", label: "Your profile", match: (p: string) => p.startsWith("/account"), strong: true },
+    { href: "/membership", label: "Church memberships", match: (p: string) => p.startsWith("/membership") },
+    ...(isClient ? [{ href: "/get-started", label: "Your answers and matches", match: (p: string) => p.startsWith("/get-started") }] : []),
+  ];
   const signOut = async () => {
     await signOutEverywhere();
     router.push("/counselors");
@@ -94,8 +101,8 @@ export function SiteHeader() {
                   href={l.href}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "inline-flex min-h-11 items-center border-b-2 text-slate-900! no-underline",
-                    active ? "border-peach-500 font-semibold" : "border-transparent hover:border-peach-200",
+                    "inline-flex min-h-11 items-center border-b-[3px] no-underline",
+                    active ? "border-peach-500 font-bold text-peach-700!" : "border-transparent text-slate-900! hover:border-peach-200",
                   )}
                 >
                   {l.label}
@@ -136,34 +143,25 @@ export function SiteHeader() {
                       </span>
                       {s?.memberships.filter((m) => membershipStatus(m) === "verified").map((m) => <MemberBadge key={m.churchSlug} churchName={m.churchName} className="self-start" />)}
                     </div>
-                    {workspace && (
-                      <Link
-                        href={workspace.href}
-                        className="flex min-h-11 w-full items-center rounded-sm px-3 text-[15px] font-semibold text-slate-900! no-underline hover:bg-cream"
-                      >
-                        {workspace.label}
-                      </Link>
-                    )}
-                    <Link
-                      href="/account"
-                      className="flex min-h-11 w-full items-center rounded-sm px-3 text-[15px] font-semibold text-slate-900! no-underline hover:bg-cream"
-                    >
-                      Your profile
-                    </Link>
-                    <Link
-                      href="/membership"
-                      className="flex min-h-11 w-full items-center rounded-sm px-3 text-[15px] text-slate-900! no-underline hover:bg-cream"
-                    >
-                      Church memberships
-                    </Link>
-                    {isClient && (
-                      <Link
-                        href="/get-started"
-                        className="flex min-h-11 w-full items-center rounded-sm px-3 text-[15px] text-slate-900! no-underline hover:bg-cream"
-                      >
-                        Your answers and matches
-                      </Link>
-                    )}
+                    {accountLinks.map((l) => {
+                      const active = l.match(pathname);
+                      return (
+                        <Link
+                          key={l.href}
+                          href={l.href}
+                          aria-current={active ? "page" : undefined}
+                          className={cn(
+                            "flex min-h-11 w-full items-center rounded-sm border-r-[3px] px-3 text-[15px] no-underline",
+                            active
+                              ? "border-peach-500 bg-peach-50 font-bold text-peach-700!"
+                              : "border-transparent text-slate-900! hover:bg-cream",
+                            l.strong && !active && "font-semibold",
+                          )}
+                        >
+                          {l.label}
+                        </Link>
+                      );
+                    })}
                     <button
                       type="button"
                       onClick={signOut}
@@ -216,21 +214,17 @@ export function SiteHeader() {
             {[
               ...links,
               ...(user
-                ? [
-                    ...(workspace ? [{ ...workspace, match: (p: string) => p.startsWith(workspace.href) }] : []),
-                    { href: "/account", label: "Your profile", match: (p: string) => p.startsWith("/account") },
-                    { href: "/membership", label: "Church memberships", match: (p: string) => p.startsWith("/membership") },
-                    ...(isClient
-                      ? [{ href: "/get-started", label: "Your answers and matches", match: (p: string) => p.startsWith("/get-started") }]
-                      : []),
-                  ]
+                ? accountLinks
                 : [{ href: "/sign-in", label: "Sign in", match: () => false }]),
             ].map((l) => (
               <li key={l.href}>
                 <Link
                   href={l.href}
                   aria-current={l.match(pathname) ? "page" : undefined}
-                  className="flex min-h-12 items-center border-b border-divider text-base font-medium text-slate-900! no-underline"
+                  className={cn(
+                    "flex min-h-12 items-center border-r-[3px] border-b border-b-divider px-3 text-base no-underline",
+                    l.match(pathname) ? "border-r-peach-500 bg-peach-50 font-bold text-peach-700!" : "border-r-transparent font-medium text-slate-900!",
+                  )}
                 >
                   {l.label}
                 </Link>
