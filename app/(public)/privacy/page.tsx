@@ -63,12 +63,15 @@ export default function PrivacyPage() {
             <>
               <p>
                 Counselors can connect their Google Calendar so clients only see times they are free. With their
-                permission, FaithWellness reads when the counselor is busy (not what their other events are about) and
-                adds each booked session, with its video link and a 15-minute rest block, to their calendar.
+                permission, FaithWellness reads the names of their calendars (so they can choose which ones to check),
+                reads when the counselor is busy on those calendars (not what their other events are about), and adds
+                each booked session, with its Google Meet link and a 15-minute rest block, to the calendar they choose.
               </p>
               <p>
                 Calendar events we create are titled “FaithWellness session”. We never put a client’s name or the
-                topic of a session in a calendar event.
+                topic of a session in an event’s title or description. The client is invited to the session as a guest,
+                so their email address appears on that one event and Google sends them the invitation. If the session
+                is canceled, we remove the event and rest block.
               </p>
               <p>
                 FaithWellness’s use and transfer of information received from Google APIs follows the{" "}
@@ -78,6 +81,10 @@ export default function PrivacyPage() {
                 , including the Limited Use requirements. We use Google data only to provide these booking features. We
                 don’t sell it, use it for advertising or use it to train AI models, and people at FaithWellness can’t
                 read it except when the counselor asks us to, for security, or when the law requires it.
+              </p>
+              <p>
+                Google sign-in tokens are encrypted before we store them. When a counselor disconnects their calendar,
+                we revoke FaithWellness’s access with Google and delete the tokens.
               </p>
             </>
           ),

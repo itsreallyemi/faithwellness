@@ -2,4 +2,4 @@
 export const contactEmail = "support@faithwellnesscounseling.com";
 
 /** Shown at the top of /privacy and /terms. Update whenever either page changes. */
-export const legalUpdated = "October 28, 2026";
+export const legalUpdated = "November 1, 2026";
