@@ -652,6 +652,26 @@ function Fees() {
         </form>
       </Panel>
       <div className="flex flex-col gap-6">
+        {counselor.church && (
+          <Panel id="member-care" title="Member benefit">
+            <label className="flex items-start gap-3 rounded-md bg-cream p-4">
+              <input
+                type="checkbox"
+                checked={settings.freeForMembers}
+                onChange={(e) =>
+                  save({ freeForMembers: e.target.checked }, "Setting saved")
+                }
+                className="mt-0.5 size-5 flex-none accent-peach-700"
+              />
+              <span className="flex flex-col gap-0.5">
+                <b className="text-[15px]">Free sessions for {counselor.church.name} members</b>
+                <span className="text-sm text-slate-600">
+                  Members your church has approved book you at no cost. Everyone else pays your usual fee.
+                </span>
+              </span>
+            </label>
+          </Panel>
+        )}
         <Panel id="sliding-scale" title="Sliding scale">
           <label className="flex items-start gap-3 rounded-md bg-cream p-4">
             <input

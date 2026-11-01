@@ -83,6 +83,7 @@ export async function saveSettings(id: string, patch: Partial<PortalSettings>): 
   if (patch.slidingScale !== undefined) counselor.sliding_scale = patch.slidingScale;
   if (patch.free30 !== undefined) counselor.free_30 = patch.free30;
   if (patch.free60 !== undefined) counselor.free_60 = patch.free60;
+  if (patch.freeForMembers !== undefined) counselor.free_for_members = patch.freeForMembers;
 
   if (Object.keys(counselor).length) {
     const { error } = await sb.from("counselors").update(counselor).eq("id", id);

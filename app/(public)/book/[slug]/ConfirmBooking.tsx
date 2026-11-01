@@ -53,7 +53,8 @@ function Form({
   const [pending, setPending] = useState(false);
   const [bookError, setBookError] = useState("");
 
-  const member = useIsMemberOf(c.churchSlug);
+  // Free only when the counselor offers member care and the client is a verified member of their church.
+  const member = useIsMemberOf(c.freeForMembers ? c.churchSlug : null);
   const start = new Date(startIso);
   const usualFee = duration === 30 ? c.fee30Cents : c.fee60Cents;
   const fee = member ? 0 : usualFee;

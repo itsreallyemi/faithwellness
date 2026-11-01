@@ -29,6 +29,8 @@ export type PortalSettings = {
   fee60Cents: number;
   free30: boolean;
   free60: boolean;
+  /** Sessions are free for verified members of the counselor's church (member care). */
+  freeForMembers: boolean;
   slidingScale: boolean;
   hours: AvailabilityRule[];
   /** "YYYY-MM-DD" dates in the counselor's time zone. */
@@ -54,6 +56,7 @@ export function defaultSettings(c: Counselor): PortalSettings {
     fee60Cents: c.fee60Cents,
     free30: c.free30,
     free60: c.free60,
+    freeForMembers: c.freeForMembers,
     slidingScale: c.slidingScale,
     hours: c.availability,
     daysOff: [],

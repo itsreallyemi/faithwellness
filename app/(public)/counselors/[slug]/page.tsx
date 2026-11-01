@@ -243,7 +243,7 @@ export default async function ProfilePage({ params, searchParams }: Props) {
             availability={c.availability}
             initialDuration={duration}
             reschedule={typeof query.reschedule === "string" ? query.reschedule : null}
-            churchSlug={c.church?.slug ?? null}
+            memberCare={c.freeForMembers && c.church ? { slug: c.church.slug, name: c.church.name } : null}
             insurance={c.insurance}
           />
         </div>

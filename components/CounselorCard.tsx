@@ -100,7 +100,7 @@ export function CounselorCard({ counselor: c, nextOpening, focusLabels, fit }: C
         ))}
       </ul>
 
-      <MemberFee churchSlug={c.church?.slug ?? null} />
+      <MemberFee churchSlug={c.freeForMembers ? (c.church?.slug ?? null) : null} />
 
       <Button variant="primary" size="lg" href={profile} className="mt-auto w-full">
         Book a call<span className="sr-only"> with {c.preferredName}</span>

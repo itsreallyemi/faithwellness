@@ -6,7 +6,6 @@ import { useEffect, useMemo, useState } from "react";
 import { Clock, Gift } from "lucide-react";
 import { useViewerTimeZone } from "@/components/LocalTime";
 import { MemberBadge } from "@/components/prototype/MemberBadge";
-import { memberCareChurch } from "@/lib/prototype/member-care";
 import { membershipStatus, useIsMemberOf, useMembership } from "@/lib/prototype/store";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
@@ -26,7 +25,8 @@ type BookingPanelProps = {
   initialDuration: Duration;
   /** Booking id being moved to a new time, if rescheduling. */
   reschedule: string | null;
-  churchSlug: string | null;
+  /** The counselor's church when they offer free sessions to its verified members, otherwise null. */
+  memberCare: { slug: string; name: string } | null;
   insurance: string[];
 };
 
@@ -39,9 +39,9 @@ export function BookingPanel(p: BookingPanelProps) {
   const [slotIdx, setSlotIdx] = useState<number | null>(null);
   const router = useRouter();
   const viewerTz = useViewerTimeZone(p.timeZone);
-  const memberChurch = memberCareChurch(p.churchSlug);
-  const member = useIsMemberOf(p.churchSlug);
-  const membership = useMembership(p.churchSlug);
+  const memberChurch = p.memberCare;
+  const member = useIsMemberOf(memberChurch?.slug);
+  const membership = useMembership(memberChurch?.slug);
   const pending = membership?.status === "pending";
   const expired = membership ? membershipStatus(membership) === "expired" : false;
   // Prices stay private; the counselor shares their fee with the client directly.
