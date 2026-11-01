@@ -205,7 +205,7 @@ function PrototypeRegister() {
           {f.program === "yes"
             ? " Next you’ll add your accreditation requirements so we can publish your page."
             : " We’ll share a simple template to help you put your accreditation program into words."}
-          {f.memberCare && " Then you can turn on free member care for your congregation."}
+          {f.memberCare && " Then you can turn on Member Benefits, free sessions for your congregation."}
         </p>
         <p className="m-0 rounded-md border border-dashed border-peach-400 bg-peach-50 px-4 py-3 text-sm text-peach-800">
           Prototype: nothing was sent or saved.

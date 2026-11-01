@@ -238,7 +238,7 @@ function Form({
           <div className="flex flex-col gap-1.5 rounded-md bg-sage-100 px-4 py-3">
             <MemberBadge churchName={c.churchName ?? undefined} className="self-start bg-white!" />
             <span className="text-[13px] leading-normal">
-              Free through {c.churchName}&rsquo;s member care. Your church never sees who booked or what you talk about.
+              Free through {c.churchName}&rsquo;s Member Benefits. Your church never sees who booked or what you talk about.
             </span>
           </div>
         ) : (

@@ -75,17 +75,17 @@ function Header({ church }: { church: Church }) {
 /** The real dashboard, for this church's signed-in admins. Members come from church_memberships. */
 function RealChurchAdmin({ church, counselors }: Props) {
   const [rows, setRows] = useState<Row[] | null>(null);
-  const [code, setCode] = useState<string | null>(null);
+  const [codes, setCodes] = useState<MemberCode[]>([]);
   const [sessions, setSessions] = useState(0);
 
   const load = useCallback(async () => {
     const sb = supabaseBrowser();
-    const [{ data: mine }, { data: members }, { data: count }] = await Promise.all([
-      sb.rpc("my_church").maybeSingle(),
+    const [{ data: codeRows }, { data: members }, { data: count }] = await Promise.all([
+      sb.from("church_codes").select("id, code, label").order("created_at"),
       sb.from("church_memberships").select("id, status, member_name, member_email, requested_at, updated_at, expires_at").order("requested_at", { ascending: false }),
       sb.rpc("my_church_member_sessions_this_month"),
     ]);
-    setCode((mine as { member_code: string | null } | null)?.member_code ?? null);
+    setCodes((codeRows as MemberCode[] | null) ?? []);
     setSessions((count as number | null) ?? 0);
     setRows(
       ((members as RealMember[] | null) ?? []).map((m) => ({
@@ -109,17 +109,31 @@ function RealChurchAdmin({ church, counselors }: Props) {
     load();
   };
 
+  const manage: CodeActions = {
+    add: async (code, label) => {
+      const { error } = await supabaseBrowser().rpc("add_member_code", { p_code: code, p_label: label });
+      if (error) return error.code === "23505" ? "That code is already in use. Try a different one." : "That didn’t save. Please try again.";
+      await load();
+      return null;
+    },
+    remove: async (id) => {
+      const { error } = await supabaseBrowser().rpc("delete_member_code", { p_id: id });
+      if (!error) await load();
+      return !error;
+    },
+  };
+
   return (
     <div className="flex flex-col gap-6">
       <Header church={church} />
       {!rows ? (
         <div aria-hidden="true" className="h-64 rounded-xl bg-cream-200" />
-      ) : code ? (
-        <DashboardBody rows={rows} set={set} sessionsThisMonth={sessions} church={church} code={code} />
+      ) : codes.length > 0 ? (
+        <DashboardBody rows={rows} set={set} sessionsThisMonth={sessions} church={church} codes={codes} manage={manage} />
       ) : (
-        <NoMemberCare church={church} />
+        <NoMemberCare church={church} manage={manage} />
       )}
-      <Counselors counselors={counselors} memberCare={Boolean(code)} />
+      <Counselors counselors={counselors} memberCare={codes.length > 0} />
     </div>
   );
 }
@@ -209,7 +223,13 @@ function Dashboard({ s, church, code }: { s: ProtoState; church: Church; code: s
   ).length;
 
   return (
-    <DashboardBody rows={rows} set={set} sessionsThisMonth={sampleSessionsThisMonth(church.slug) + yourSessions} church={church} code={code} />
+    <DashboardBody
+      rows={rows}
+      set={set}
+      sessionsThisMonth={sampleSessionsThisMonth(church.slug) + yourSessions}
+      church={church}
+      codes={[{ id: "sample", code, label: "" }]}
+    />
   );
 }
 
@@ -219,13 +239,16 @@ function DashboardBody({
   set,
   sessionsThisMonth,
   church,
-  code,
+  codes,
+  manage,
 }: {
   rows: Row[];
   set: (row: Row, status: ProtoMembership["status"], message: string) => void;
   sessionsThisMonth: number;
   church: Church;
-  code: string;
+  codes: MemberCode[];
+  /** Real churches add and delete codes; the prototype can't. */
+  manage?: CodeActions;
 }) {
   const status = (r: Row) => membershipStatus(r);
   const pending = rows.filter((r) => status(r) === "pending");
@@ -303,7 +326,7 @@ function DashboardBody({
 
       <Members members={members} past={past} onEnd={(r) => set(r, "ended", "Membership ended")} onRestore={(r) => set(r, "verified", "Approved")} />
 
-      <MemberAccess church={church} code={code} />
+      <MemberAccess church={church} codes={codes} manage={manage} />
     </>
   );
 }
@@ -429,55 +452,228 @@ function Members({
   );
 }
 
-function MemberAccess({ church, code }: { church: Church; code: string }) {
-  const link = `${typeof window === "undefined" ? "" : window.location.origin}/join/${church.slug}?code=${code}`;
-  const copy = async (text: string, what: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      proto.toast(`${what} copied`);
-    } catch {
-      proto.toast(`Couldn’t copy. Select the ${what.toLowerCase()} and copy it instead.`);
-    }
-  };
+type MemberCode = { id: string; code: string; label: string };
+/** add returns an error message, or null when saved. */
+type CodeActions = { add: (code: string, label: string) => Promise<string | null>; remove: (id: string) => Promise<boolean> };
 
+async function copyText(text: string, what: string) {
+  try {
+    await navigator.clipboard.writeText(text);
+    proto.toast(`${what} copied`);
+  } catch {
+    proto.toast(`Couldn’t copy. Select the ${what.toLowerCase()} and copy it instead.`);
+  }
+}
+
+/** The church's member codes, each with its link. Real churches can add more and delete ones they don't want. */
+function MemberAccess({ church, codes, manage }: { church: Church; codes: MemberCode[]; manage?: CodeActions }) {
+  const [adding, setAdding] = useState(false);
   return (
     <Section
       id="access"
       title="Member access"
-      intro="Share your code or link with members only, for example in a members’ newsletter or group chat. Each person still needs your approval."
+      intro="Share a code or link with members only, for example in a members’ newsletter or group chat. Each person still needs your approval."
     >
-      <div className="grid gap-3 md:grid-cols-[auto_1fr]">
-        <div className="flex flex-col gap-2 rounded-md bg-cream p-4">
-          <span className="text-[13px] font-semibold text-slate-600">Member code</span>
-          <span className="font-mono text-[22px] font-semibold tracking-wider">{code}</span>
-          <Button variant="secondary" className={`${small} self-start`} onClick={() => copy(code, "Code")}>
-            <Copy size={16} strokeWidth={1.8} aria-hidden="true" />
-            Copy code
+      <ul className="m-0 flex list-none flex-col gap-3 p-0">
+        {codes.map((c) => (
+          <li key={c.id}>
+            <CodeRow church={church} code={c} canDelete={Boolean(manage)} last={codes.length === 1} onDelete={manage?.remove} />
+          </li>
+        ))}
+      </ul>
+      {manage &&
+        (adding ? (
+          <CodeForm
+            submitLabel="Add code"
+            note="Any of your codes works. You can delete a code later without affecting the others."
+            onSave={async (code, label) => {
+              const problem = await manage.add(code, label);
+              if (!problem) {
+                setAdding(false);
+                proto.toast("Code added");
+              }
+              return problem;
+            }}
+            onCancel={() => setAdding(false)}
+          />
+        ) : (
+          <Button variant="secondary" className={`${small} self-start`} onClick={() => setAdding(true)}>
+            Add a code
           </Button>
-        </div>
-        <div className="flex min-w-0 flex-col gap-2 rounded-md bg-cream p-4">
-          <span className="text-[13px] font-semibold text-slate-600">Member link</span>
-          <span className="text-[15px] break-all">{link}</span>
-          <Button variant="secondary" className={`${small} self-start`} onClick={() => copy(link, "Link")}>
-            <Copy size={16} strokeWidth={1.8} aria-hidden="true" />
-            Copy link
-          </Button>
-        </div>
-      </div>
+        ))}
     </Section>
   );
 }
 
-function NoMemberCare({ church }: { church: Church }) {
+function CodeRow({
+  church,
+  code: c,
+  canDelete,
+  last,
+  onDelete,
+}: {
+  church: Church;
+  code: MemberCode;
+  canDelete: boolean;
+  last: boolean;
+  onDelete?: (id: string) => Promise<boolean>;
+}) {
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const link = `${typeof window === "undefined" ? "" : window.location.origin}/join/${church.slug}?code=${c.code}`;
   return (
-    <Section id="member-care" title="Member care isn’t set up yet">
+    <div className="flex flex-col gap-3 rounded-md bg-cream p-4">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <span className="font-mono text-[22px] font-semibold tracking-wider">{c.code}</span>
+        {c.label && <span className="text-[13px] font-semibold text-slate-600">{c.label}</span>}
+      </div>
+      <span className="text-[13px] break-all text-slate-600">{link}</span>
+      <div className="flex flex-wrap gap-2">
+        <Button variant="secondary" className={small} onClick={() => copyText(c.code, "Code")}>
+          <Copy size={16} strokeWidth={1.8} aria-hidden="true" />
+          Copy code
+        </Button>
+        <Button variant="secondary" className={small} onClick={() => copyText(link, "Link")}>
+          <Copy size={16} strokeWidth={1.8} aria-hidden="true" />
+          Copy link
+        </Button>
+        {canDelete && !confirming && (
+          <Button variant="link" className={small} onClick={() => setConfirming(true)}>
+            Delete
+          </Button>
+        )}
+      </div>
+      {confirming && onDelete && (
+        <div role="alertdialog" aria-label={`Delete ${c.code}?`} className="flex flex-col gap-3 rounded-md border border-peach-400 bg-white p-4">
+          <b className="text-[15px]">Delete {c.code}?</b>
+          <span className="text-sm text-slate-600">
+            This code and its link stop working straight away. Members you&rsquo;ve already approved stay approved.
+            {last && " It’s your only code, so nobody new can ask to join until you add another."}
+          </span>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              className={small}
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                const ok = await onDelete(c.id);
+                setBusy(false);
+                proto.toast(ok ? "Code deleted" : "That didn’t work. Please try again.");
+                if (!ok) setConfirming(false);
+              }}
+            >
+              Delete code
+            </Button>
+            <Button variant="link" className={small} onClick={() => setConfirming(false)}>
+              Keep it
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** A new member code (6 to 20 letters or numbers) with an optional label. onSave returns an error message, or null when saved. */
+function CodeForm({
+  note,
+  submitLabel,
+  onSave,
+  onCancel,
+}: {
+  note: string;
+  submitLabel: string;
+  onSave: (code: string, label: string) => Promise<string | null>;
+  onCancel?: () => void;
+}) {
+  const [value, setValue] = useState("");
+  const [label, setLabel] = useState("");
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const clean = value.replace(/\s+/g, "").toUpperCase();
+  return (
+    <form
+      noValidate
+      className="flex flex-col gap-3 rounded-md border border-border p-4"
+      onSubmit={async (e) => {
+        e.preventDefault();
+        if (!/^[A-Z0-9]{6,20}$/.test(clean)) return setError("Use 6 to 20 letters or numbers, with no spaces or symbols.");
+        setSaving(true);
+        const problem = await onSave(clean, label.trim());
+        setSaving(false);
+        if (problem) setError(problem);
+      }}
+    >
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="flex flex-col gap-1.5 text-sm font-semibold">
+          New code
+          <input
+            value={value}
+            onChange={(e) => {
+              setValue(e.target.value);
+              setError("");
+            }}
+            autoComplete="off"
+            autoCapitalize="characters"
+            aria-invalid={Boolean(error) || undefined}
+            placeholder="e.g. GRACEMEMBERS"
+            className="min-h-12 rounded-md border border-border bg-cream px-4 font-mono text-base tracking-wider uppercase aria-invalid:border-peach-700"
+          />
+        </label>
+        <label className="flex flex-col gap-1.5 text-sm font-semibold">
+          <span>
+            Label <span className="font-normal text-slate-600">(optional, only you see it)</span>
+          </span>
+          <input
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            placeholder="e.g. Sunday bulletin"
+            className="min-h-12 rounded-md border border-border bg-cream px-4 text-base"
+          />
+        </label>
+      </div>
+      <span className="text-[13px] text-slate-600">{note}</span>
+      {error && (
+        <p role="alert" className="m-0 text-sm text-peach-700">
+          {error}
+        </p>
+      )}
+      <div className="flex flex-wrap gap-3">
+        <Button type="submit" className={small} disabled={saving}>
+          {saving ? "Saving…" : submitLabel}
+        </Button>
+        {onCancel && (
+          <Button variant="link" className={small} onClick={onCancel}>
+            Cancel
+          </Button>
+        )}
+      </div>
+    </form>
+  );
+}
+
+function NoMemberCare({ church, manage }: { church: Church; manage?: CodeActions }) {
+  return (
+    <Section id="member-care" title="Member Benefits aren’t set up yet">
       <p className="m-0 text-[15px] leading-normal">
-        With member care, people in {church.name} can book your counselors for free once you approve them. You&rsquo;ll get a
-        member code and link to share, and this page will list everyone who asks to join.
+        With Member Benefits, people in {church.name} can book your counselors for free once you approve them. Add a member code
+        to share, and this page will list everyone who asks to join.
       </p>
-      <Button href="/for-churches#register" className="self-start">
-        Set up member care
-      </Button>
+      {manage ? (
+        <CodeForm
+          note="Choose something easy to share with members but hard to guess. You can add more codes later."
+          submitLabel="Turn on Member Benefits"
+          onSave={async (code, label) => {
+            const problem = await manage.add(code, label);
+            if (!problem) proto.toast("Member Benefits are on");
+            return problem;
+          }}
+        />
+      ) : (
+        <Button href="/for-churches#register" className="self-start">
+          Set up Member Benefits
+        </Button>
+      )}
     </Section>
   );
 }

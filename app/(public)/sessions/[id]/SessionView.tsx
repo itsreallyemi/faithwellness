@@ -99,7 +99,7 @@ function Detail({ booking: b, counselor: c, email }: { booking: ProtoBooking; co
               {b.insurance
                 ? `Insurance · ${b.insurance.provider}`
                 : b.memberCare
-                  ? `Free, ${c.churchName} member care`
+                  ? `Free, ${c.churchName} Member Benefits`
                   : feeSummary(b, c.preferredName)}
             </dd>
           </dl>

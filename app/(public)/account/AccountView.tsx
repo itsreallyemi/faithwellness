@@ -400,7 +400,7 @@ function Memberships({ s }: { s: SignedIn }) {
     >
       {s.memberships.length === 0 ? (
         <p className="m-0 text-slate-600">
-          If your church offers member care, sessions with its counselors can be free.{" "}
+          If your church offers Member Benefits, sessions with its counselors can be free.{" "}
           <Link href="/membership" className="font-semibold">
             Add your church
           </Link>

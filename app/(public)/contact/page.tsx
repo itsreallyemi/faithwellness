@@ -28,7 +28,7 @@ const elsewhere = [
   {
     icon: Church,
     title: "Churches and denominations",
-    body: "Offer member care, or list your accreditation standard.",
+    body: "Offer Member Benefits, or list your accreditation standard.",
     href: "/for-churches",
   },
 ];

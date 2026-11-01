@@ -111,7 +111,7 @@ export function BookingPanel(p: BookingPanelProps) {
           <div className="flex flex-col gap-1.5 rounded-md bg-sage-100 px-4 py-3">
             <MemberBadge churchName={memberChurch.name} className="self-start bg-white!" />
             <span className="text-sm leading-normal">
-              Sessions with {p.preferredName} are free for you through {memberChurch.name}&rsquo;s member care.
+              Sessions with {p.preferredName} are free for you through {memberChurch.name}&rsquo;s Member Benefits.
             </span>
           </div>
         ) : expired ? (

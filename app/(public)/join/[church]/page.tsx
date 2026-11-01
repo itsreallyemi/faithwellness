@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { CrisisNotice } from "@/components/ui/CrisisNotice";
 import { JoinView } from "./JoinView";
 
-export const metadata: Metadata = { title: "Member care" };
+export const metadata: Metadata = { title: "Member Benefits" };
 
 type Props = {
   params: Promise<{ church: string }>;

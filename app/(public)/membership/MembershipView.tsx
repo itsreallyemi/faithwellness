@@ -40,7 +40,7 @@ export function MembershipView() {
             <div className="flex flex-col gap-2">
               <h1 className="m-0 font-display text-[32px] leading-[1.1] md:text-[40px]">Church memberships</h1>
               <p className="m-0 text-slate-600">
-                If a church you belong to offers member care, sessions with its counselors are free once the church
+                If a church you belong to offers Member Benefits, sessions with its counselors are free once the church
                 approves you. You can add every church you&rsquo;re part of.
               </p>
             </div>
@@ -56,7 +56,7 @@ export function MembershipView() {
             {authEnabled && realChurches === null ? null : available.length > 0 ? (
               <CodeForm churches={available} first={memberships.length === 0} />
             ) : (
-              <p className="m-0 text-sm text-slate-600">You&rsquo;ve added every church that offers member care.</p>
+              <p className="m-0 text-sm text-slate-600">You&rsquo;ve added every church that offers Member Benefits.</p>
             )}
             <PrivacyNote />
           </div>

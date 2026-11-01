@@ -653,7 +653,7 @@ function Fees() {
       </Panel>
       <div className="flex flex-col gap-6">
         {counselor.church && (
-          <Panel id="member-care" title="Member benefit">
+          <Panel id="member-care" title="Member Benefits">
             <label className="flex items-start gap-3 rounded-md bg-cream p-4">
               <input
                 type="checkbox"

@@ -67,7 +67,7 @@ export default function TermsPage() {
                 You can ask a counselor for a lower price if their fee is a hardship. They decide whether to accept.
               </li>
               <li>
-                Church member care sessions are free to members, up to the number of sessions your church provides.
+                Sessions through a church’s Member Benefits are free to members, up to the number of sessions your church provides.
               </li>
               <li>
                 You can cancel or reschedule from <Link href="/sessions">My sessions</Link>. Cancelling is free up to 24

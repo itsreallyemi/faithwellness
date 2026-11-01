@@ -63,7 +63,7 @@ const steps = [
   { title: "Register your church", body: "Tell us about your church or denomination and who will manage it." },
   { title: "Publish your accreditation program", body: "Add your requirements. We review them for clarity and publish your page." },
   { title: "Accredit your counselors", body: "Invite pastors, lay counselors and clinicians you’ve accredited to join." },
-  { title: "Turn on member care", body: "Choose which counselors offer free sessions to members, and how many hours." },
+  { title: "Turn on Member Benefits", body: "Choose which counselors offer free sessions to members, and how many hours." },
   { title: "Invite your congregation", body: "Share your member link. Members book privately whenever they need to." },
 ];
 
@@ -73,7 +73,7 @@ const faqs = [
     a: "To accredit counselors, yes. If you don’t have one yet, you can publish a simple first version and grow it, or work under your denomination’s standard.",
   },
   {
-    q: "Is member care really free for members?",
+    q: "Are Member Benefits really free for members?",
     a: "Yes, for members you’ve approved. Your church decides how its counselors are supported, for example as staff, volunteers or with a care fund.",
   },
   {
@@ -94,7 +94,7 @@ const faqs = [
   },
   {
     q: "Can a denomination register for all its churches?",
-    a: "Yes. A denomination can publish one shared standard and let each member church nominate counselors and offer member care.",
+    a: "Yes. A denomination can publish one shared standard and let each member church nominate counselors and offer Member Benefits.",
   },
   {
     q: "What does it cost a church to join?",
@@ -221,7 +221,7 @@ export default async function ForChurchesPage() {
         </div>
       </section>
 
-      {/* Member care */}
+      {/* Member Benefits */}
       <section aria-labelledby="members" className="bg-sage-100/60">
         <div className="mx-auto grid w-full max-w-[1280px] gap-10 px-4 py-14 md:px-8 md:py-20 lg:grid-cols-[1fr_420px] lg:items-center lg:gap-16">
           <div className="flex flex-col gap-6">
@@ -275,7 +275,7 @@ export default async function ForChurchesPage() {
           <figure className="m-0 flex flex-col gap-3">
             <Card className="flex flex-col gap-4">
               <div className="flex items-center justify-between gap-3">
-                <span className="label-overline">Grace Fellowship member care</span>
+                <span className="label-overline">Grace Fellowship Member Benefits</span>
                 <Badge className="flex-none whitespace-nowrap">Verified member</Badge>
               </div>
               <p className="m-0 font-display text-xl leading-7">Book free with your church&rsquo;s counselors</p>
@@ -339,7 +339,7 @@ export default async function ForChurchesPage() {
             <h2 className="m-0 font-display text-2xl leading-8">For denominations</h2>
             <p className="m-0 text-[15px] leading-[1.6] text-slate-600">
               Publish one accreditation standard for every church in your fellowship. Each church nominates its own
-              counselors and chooses whether to offer member care, while your standard keeps care consistent.
+              counselors and chooses whether to offer Member Benefits, while your standard keeps care consistent.
             </p>
             <Link href="/accreditation/coastal-presbytery" className="inline-flex min-h-11 items-center gap-1 self-start font-semibold">
               See a sample denomination page

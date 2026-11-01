@@ -135,7 +135,7 @@ function Review({ app, onSaved }: { app: ChurchApplication; onSaved: (a: ChurchA
         </dd>
         <dt className="font-semibold text-slate-600">Accreditation</dt>
         <dd className="m-0">{programLabel[app.program]}</dd>
-        <dt className="font-semibold text-slate-600">Member care</dt>
+        <dt className="font-semibold text-slate-600">Member Benefits</dt>
         <dd className="m-0">{app.member_care ? "Wants to offer free sessions to members" : "Not for now"}</dd>
         <dt className="font-semibold text-slate-600">Sent</dt>
         <dd className="m-0">{shortDate(app.submitted_at)}</dd>
@@ -149,7 +149,7 @@ function Review({ app, onSaved }: { app: ChurchApplication; onSaved: (a: ChurchA
         <div className="flex flex-col gap-4 border-t border-border-warm pt-5">
           <p className="m-0 text-[15px] text-slate-600">
             Check it&rsquo;s a real church and that {app.contact_name} can act for it (for example, call the church office).
-            Approving creates the church, {app.member_care ? "turns on member care with a starting member code, " : ""}and
+            Approving creates the church, {app.member_care ? "turns on Member Benefits with a starting member code, " : ""}and
             opens its dashboard for {app.email}.
           </p>
           <label className="flex flex-col gap-1.5 text-sm font-semibold">

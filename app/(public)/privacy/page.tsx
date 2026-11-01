@@ -111,7 +111,7 @@ export default function PrivacyPage() {
                   to the questions.
                 </li>
                 <li>
-                  <b>Your church</b>, if you use church member care, sees your name and that you’ve joined as a
+                  <b>Your church</b>, if you use your church’s Member Benefits, sees your name and that you’ve joined as a
                   member, so it can approve you. It sees only session totals for the whole church, never who booked,
                   when, which counselor or anything said in a session or message.
                 </li>

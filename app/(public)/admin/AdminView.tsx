@@ -418,7 +418,7 @@ function ChurchSelect({ churches, value, onChange }: { churches: ChurchOption[];
         ))}
       </select>
       <span className="text-[13px] text-slate-600">
-        Shown on their profile. Their church&rsquo;s verified members can book them free if they turn on member care.
+        Shown on their profile. Their church&rsquo;s verified members can book them free if they turn on Member Benefits.
       </span>
     </div>
   );

@@ -278,7 +278,7 @@ function shortName(full: string) {
 }
 
 function paymentLabel(b: ProtoBooking) {
-  if (b.memberCare) return "Member care · free";
+  if (b.memberCare) return "Member Benefits · free";
   if (b.insurance) {
     const status = { pending: "to verify", verified: "verified", "not-covered": "not covered" }[b.insurance.status];
     return `Insurance · ${b.insurance.provider} · ${status}`;
