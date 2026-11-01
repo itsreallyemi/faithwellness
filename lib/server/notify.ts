@@ -162,3 +162,47 @@ export async function applicationDecided(applicationId: string) {
     console.error("applicationDecided email", e instanceof Error ? e.message : e);
   }
 }
+
+/**
+ * The daily reminder run: emails both people about each confirmed session starting in the next 36 hours that
+ * hasn't been reminded yet. Sessions booked within 12 hours of starting are skipped, since their confirmation
+ * just arrived. Returns how many sessions were reminded.
+ */
+export async function sendSessionReminders(now = new Date()) {
+  const db = adminDb();
+  const until = new Date(now.getTime() + 36 * 3_600_000);
+  const { data } = await db
+    .from("bookings")
+    .select("id, counselor_id, start_utc, created_at, duration, client_name, client_email, client_time_zone, meet_url")
+    .eq("status", "confirmed")
+    .is("reminder_sent_at", null)
+    .gt("start_utc", now.toISOString())
+    .lte("start_utc", until.toISOString());
+  let sent = 0;
+  for (const b of (data ?? []) as (BookingFacts & { created_at: string })[]) {
+    // Mark first, so a slow or failed email never leads to a second reminder.
+    await db.from("bookings").update({ reminder_sent_at: now.toISOString() }).eq("id", b.id).is("reminder_sent_at", null);
+    if (new Date(b.start_utc).getTime() - new Date(b.created_at).getTime() < 12 * 3_600_000) continue;
+    try {
+      const c = await counselorInfo(b.counselor_id);
+      await Promise.all([
+        sendEmail({
+          to: b.client_email,
+          subject: `Reminder: your session with ${c.name}`,
+          body: `Hi ${firstName(b.client_name)},\n\nA reminder that your ${b.duration}-minute session with ${c.name} is ${when(b.start_utc, b.client_time_zone)}.${b.meet_url ? `\n\nJoin on Google Meet when it starts: ${b.meet_url}` : ""}\n\nFind a quiet, private spot where you can talk freely. Need to change it? You can reschedule or cancel from your session page.`,
+          button: { label: "See your session", href: `${SITE}/sessions/${b.id}` },
+        }),
+        sendEmail({
+          to: c.email,
+          subject: `Reminder: session ${when(b.start_utc, c.timeZone)}`,
+          body: `Hi ${firstName(c.name)},\n\nA reminder that you're meeting ${firstName(b.client_name)} ${when(b.start_utc, c.timeZone)} (${b.duration} minutes).${b.meet_url ? `\n\nGoogle Meet: ${b.meet_url}` : ""}`,
+          button: { label: "Open your sessions", href: `${SITE}/portal/sessions` },
+        }),
+      ]);
+      sent++;
+    } catch (e) {
+      console.error("Reminder email", e instanceof Error ? e.message : e);
+    }
+  }
+  return sent;
+}
