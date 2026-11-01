@@ -1,7 +1,8 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { after, NextResponse, type NextRequest } from "next/server";
 import { BOOKING_SELECT, type BookingRow, type NewBooking } from "@/lib/bookings";
 import { bookableCounselor, cancelBooking, stillOpen } from "@/lib/server/bookings";
 import { accessTokenFor, createSessionEvents } from "@/lib/server/google";
+import { bookingConfirmed } from "@/lib/server/notify";
 import { adminDb, calendarConfigured } from "@/lib/server/secrets";
 import { supabaseServer } from "@/lib/supabase/server";
 
@@ -89,6 +90,9 @@ export async function POST(request: NextRequest) {
   }
 
   if (body.rescheduleOf) await cancelBooking(body.rescheduleOf, "client", "Rescheduled to a new time.");
+
+  // Emails go out after the response, so the client isn't kept waiting.
+  after(() => bookingConfirmed(created.id, Boolean(body.rescheduleOf)));
 
   const { data: booking } = await db.from("bookings").select(BOOKING_SELECT).eq("id", created.id).single();
   return NextResponse.json({ booking: booking as BookingRow });

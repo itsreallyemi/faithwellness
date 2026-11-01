@@ -10,7 +10,7 @@ import { FilterChip } from "@/components/ui/FilterChip";
 import { cn } from "@/lib/cn";
 import { NOT_LISTED, roleLabel, shortDate, statusLabel, type Application, type ApplicationStatus } from "@/lib/applications";
 import { contactEmail } from "@/lib/site";
-import { authEnabled, supabaseBrowser, useAuthState } from "@/lib/supabase/client";
+import { authEnabled, notify, supabaseBrowser, useAuthState } from "@/lib/supabase/client";
 
 type Body = { slug: string; name: string };
 
@@ -168,6 +168,7 @@ function Review({
       .single();
     setSaving(false);
     if (error) return setError("That didn’t save. Please try again.");
+    notify("application-decided", app.id);
     setJustDecided(decision);
     onSaved(data as Application);
   };
@@ -277,7 +278,8 @@ function Review({
         <div className="flex flex-col gap-3 rounded-md border border-border-warm bg-cream px-4 py-4 text-[15px]">
           <b>Saved: {statusLabel[justDecided].toLowerCase()}.</b>
           <span className="text-slate-600">
-            FaithWellness doesn&rsquo;t send emails automatically yet. Let {firstName} know from {contactEmail}:
+            We&rsquo;ve emailed {firstName} at {app.email} to let them know. To add a personal note, write to them from{" "}
+            {contactEmail}:
           </span>
           <Button
             variant="secondary"

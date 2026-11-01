@@ -6,7 +6,7 @@ import { CircleCheck, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { servicePrice } from "@/lib/services";
-import { authEnabled, ownCounselorSlug, supabaseBrowser, useAuthState } from "@/lib/supabase/client";
+import { authEnabled, notify, ownCounselorSlug, supabaseBrowser, useAuthState } from "@/lib/supabase/client";
 import type { CounselorService } from "@/lib/types";
 
 const field = "min-h-12 w-full rounded-md border border-border bg-cream px-4 text-base aria-invalid:border-peach-700";
@@ -129,7 +129,7 @@ function RequestForm({
         e.preventDefault();
         if (!details.trim()) return setError(`Tell ${preferredName} a little about what you need.`);
         setSending(true);
-        const { error } = await supabaseBrowser().rpc("request_service", {
+        const { data, error } = await supabaseBrowser().rpc("request_service", {
           p_service: service.id,
           p_date: date || null,
           p_flexible: flexible,
@@ -138,6 +138,7 @@ function RequestForm({
         });
         setSending(false);
         if (error) return setError("We couldn’t send your request. Please try again.");
+        notify("service-requested", (data as { id: string }).id);
         onSent();
       }}
     >

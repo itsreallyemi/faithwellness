@@ -1,5 +1,6 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { after, NextResponse, type NextRequest } from "next/server";
 import { cancelBooking } from "@/lib/server/bookings";
+import { bookingCanceled } from "@/lib/server/notify";
 import { adminDb, calendarConfigured } from "@/lib/server/secrets";
 import { supabaseServer } from "@/lib/supabase/server";
 
@@ -20,5 +21,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const { reason } = (await request.json().catch(() => ({}))) as { reason?: string };
   const booking = await cancelBooking(id, by, (reason ?? "").slice(0, 500));
   if (!booking) return NextResponse.json({ error: "not-cancelable" }, { status: 409 });
+  after(() => bookingCanceled(id, by, reason ?? ""));
   return NextResponse.json({ booking });
 }

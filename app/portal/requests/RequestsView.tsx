@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/Card";
 import { shortDate } from "@/lib/applications";
 import { proto } from "@/lib/prototype/store";
 import { requestStatusLabel, requestWhen, type ServiceRequest } from "@/lib/services";
-import { supabaseBrowser } from "@/lib/supabase/client";
+import { notify, supabaseBrowser } from "@/lib/supabase/client";
 import { usePortal } from "../PortalShell";
 import { field, PageHeader, Panel } from "../ui";
 
@@ -149,6 +149,7 @@ function Reply({ request, onDone }: { request: ServiceRequest; onDone: (r: Servi
       .single();
     setSaving(false);
     if (error) return setError("That didn’t send. Please try again.");
+    notify("service-answered", request.id);
     proto.toast(status === "accepted" ? "Request accepted" : "Request declined");
     onDone(data as ServiceRequest);
   };

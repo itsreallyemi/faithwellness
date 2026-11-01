@@ -80,7 +80,7 @@ function SessionRow({ session: x, upcoming }: { session: PortalSession; upcoming
     const day = formatSession(start, x.duration, x.clientTimeZone);
     if (x.real && x.bookingId) {
       // Removes the Google event; Google emails the client that it's canceled.
-      const ok = await cancelReal(x.bookingId, note.trim() || `${counselor.preferredName} canceled the session on ${day}.`);
+      const ok = await cancelReal(x.bookingId, note.trim());
       setCanceling(false);
       if (!ok) return proto.toast("That didn’t cancel. Please try again.");
       reload();

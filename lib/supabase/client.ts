@@ -94,3 +94,8 @@ export function useOwnAvatar() {
     () => null,
   );
 }
+
+/** Asks the server to email whoever should hear about a change just saved. Fire and forget. */
+export function notify(kind: "service-requested" | "service-answered" | "application-decided", id: string) {
+  fetch("/api/notify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind, id }) }).catch(() => {});
+}
