@@ -136,12 +136,9 @@ export function SiteHeader() {
                 </button>
                 {accountOpen && (
                   <div className="absolute top-full right-0 z-20 mt-2 w-64 rounded-lg border border-border-warm bg-white p-2 shadow-raised">
-                    <div className="flex flex-col gap-2 px-3 py-2">
-                      <span>
-                        <b className="block text-[15px]">{user.name}</b>
-                        <span className="text-[13px] text-slate-600">{user.email}</span>
-                      </span>
-                      {s?.memberships.filter((m) => membershipStatus(m) === "verified").map((m) => <MemberBadge key={m.churchSlug} churchName={m.churchName} className="self-start" />)}
+                    <div className="mb-1 flex flex-col items-start gap-2 border-b border-divider px-3 pt-2 pb-3">
+                      <b className="block text-[15px]">{user.name}</b>
+                      {s?.memberships.filter((m) => membershipStatus(m) === "verified").map((m) => <MemberBadge key={m.churchSlug} churchName={m.churchName} />)}
                     </div>
                     {accountLinks.map((l) => {
                       const active = l.match(pathname);
@@ -165,7 +162,7 @@ export function SiteHeader() {
                     <button
                       type="button"
                       onClick={signOut}
-                      className="flex min-h-11 w-full cursor-pointer items-center rounded-sm px-3 text-left text-[15px] hover:bg-cream"
+                      className="flex min-h-11 w-full cursor-pointer items-center rounded-sm border-r-[3px] border-transparent px-3 text-left text-[15px] hover:bg-cream"
                     >
                       Sign out
                     </button>
