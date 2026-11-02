@@ -1,5 +1,6 @@
 import "server-only";
 import type Stripe from "stripe";
+import { paymentFailed } from "./notify";
 import { adminDb } from "./secrets";
 import { splitFee, stripe } from "./stripe";
 
@@ -45,7 +46,16 @@ type ChargeRow = {
   insurance_status: string | null;
   payment_status: string;
   payment_method_id: string | null;
-  counselor: { id: string; stripe_account_id: string | null; church: { id: string; stripe_account_id: string | null; payouts_ready: boolean } | null } | null;
+  charge_attempts: number;
+  counselor: {
+    id: string;
+    stripe_account_id: string | null;
+    church: {
+      id: string;
+      stripe_account_id: string | null;
+      payouts_ready: boolean;
+    } | null;
+  } | null;
 };
 
 /** What the member owes: their offer if it was accepted (or is still waiting), otherwise the usual fee. */
@@ -64,7 +74,7 @@ export async function chargeBooking(bookingId: string): Promise<"charged" | "not
   const { data } = await db
     .from("bookings")
     .select(
-      "id, status, client_id, fee_cents, member_care, offer_cents, offer_status, insurance_status, payment_status, payment_method_id, counselor:counselors(id, stripe_account_id, church:churches(id, stripe_account_id, payouts_ready))",
+      "id, status, client_id, fee_cents, member_care, offer_cents, offer_status, insurance_status, payment_status, payment_method_id, charge_attempts, counselor:counselors(id, stripe_account_id, church:churches(id, stripe_account_id, payouts_ready))",
     )
     .eq("id", bookingId)
     .maybeSingle();
@@ -79,7 +89,10 @@ export async function chargeBooking(bookingId: string): Promise<"charged" | "not
   // Claim it first, so two runs at once can't both charge it.
   const { data: claimed } = await db
     .from("bookings")
-    .update({ payment_status: "charging" })
+    .update({
+      payment_status: "charging",
+      charge_attempts: b.charge_attempts + 1,
+    })
     .eq("id", b.id)
     .eq("payment_status", "card_saved")
     .select("id");
@@ -104,11 +117,21 @@ export async function chargeBooking(bookingId: string): Promise<"charged" | "not
         metadata: { booking_id: b.id },
         expand: ["latest_charge.balance_transaction"],
       },
-      { idempotencyKey: `charge-${b.id}` },
+      // One key per attempt: a retry after a decline (usually with another card) is a new charge.
+      {
+        idempotencyKey: b.charge_attempts === 0 ? `charge-${b.id}` : `charge-${b.id}-${b.charge_attempts + 1}`,
+      },
     );
   } catch (e) {
     const message = e instanceof Error ? e.message : "The card was declined.";
-    await db.from("bookings").update({ payment_status: "failed", payment_error: message.slice(0, 300), amount_cents: amount }).eq("id", b.id);
+    await db
+      .from("bookings")
+      .update({
+        payment_status: "failed",
+        payment_error: message.slice(0, 300),
+        amount_cents: amount,
+      })
+      .eq("id", b.id);
     return "failed";
   }
 
@@ -122,7 +145,13 @@ export async function chargeBooking(bookingId: string): Promise<"charged" | "not
   let churchTransfer: string | null = null;
   if (b.counselor?.stripe_account_id && counselorShare > 0 && charge) {
     const t = await stripe().transfers.create(
-      { amount: counselorShare, currency: "usd", destination: b.counselor.stripe_account_id, source_transaction: charge.id, transfer_group: b.id },
+      {
+        amount: counselorShare,
+        currency: "usd",
+        destination: b.counselor.stripe_account_id,
+        source_transaction: charge.id,
+        transfer_group: b.id,
+      },
       { idempotencyKey: `counselor-${b.id}` },
     );
     counselorTransfer = t.id;
@@ -130,7 +159,13 @@ export async function chargeBooking(bookingId: string): Promise<"charged" | "not
   // A church that hasn't set up payouts yet has its share held (church_transfer_id stays empty).
   if (church?.payouts_ready && church.stripe_account_id && split.church > 0 && charge) {
     const t = await stripe().transfers.create(
-      { amount: split.church, currency: "usd", destination: church.stripe_account_id, source_transaction: charge.id, transfer_group: b.id },
+      {
+        amount: split.church,
+        currency: "usd",
+        destination: church.stripe_account_id,
+        source_transaction: charge.id,
+        transfer_group: b.id,
+      },
       { idempotencyKey: `church-${b.id}` },
     );
     churchTransfer = t.id;
@@ -144,6 +179,7 @@ export async function chargeBooking(bookingId: string): Promise<"charged" | "not
       charged_at: new Date().toISOString(),
       amount_cents: amount,
       platform_fee_cents: split.platform,
+      church_id: church?.id ?? null,
       church_fee_cents: split.church,
       stripe_fee_cents: stripeFee,
       counselor_transfer_id: counselorTransfer,
@@ -152,6 +188,47 @@ export async function chargeBooking(bookingId: string): Promise<"charged" | "not
     })
     .eq("id", b.id);
   return "charged";
+}
+
+/**
+ * A church just finished setting up payouts: pay it the shares held while it wasn't ready. Each transfer draws on
+ * the original charge (source_transaction). Returns how many were paid.
+ */
+export async function payHeldChurchShares(churchId: string) {
+  const db = adminDb();
+  const { data: church } = await db.from("churches").select("stripe_account_id, payouts_ready").eq("id", churchId).maybeSingle();
+  if (!church?.payouts_ready || !church.stripe_account_id) return 0;
+  const { data } = await db
+    .from("bookings")
+    .select("id, payment_intent_id, church_fee_cents")
+    .eq("church_id", churchId)
+    .eq("payment_status", "charged")
+    .is("church_transfer_id", null)
+    .gt("church_fee_cents", 0)
+    .limit(200);
+  let paid = 0;
+  for (const b of data ?? []) {
+    try {
+      const intent = await stripe().paymentIntents.retrieve(b.payment_intent_id);
+      const charge = typeof intent.latest_charge === "string" ? intent.latest_charge : intent.latest_charge?.id;
+      if (!charge) continue;
+      const t = await stripe().transfers.create(
+        {
+          amount: b.church_fee_cents,
+          currency: "usd",
+          destination: church.stripe_account_id,
+          source_transaction: charge,
+          transfer_group: b.id,
+        },
+        { idempotencyKey: `church-${b.id}` },
+      );
+      await db.from("bookings").update({ church_transfer_id: t.id }).eq("id", b.id);
+      paid++;
+    } catch (e) {
+      console.error("Held church share", e instanceof Error ? e.message : e);
+    }
+  }
+  return paid;
 }
 
 /** Charges every booking whose time has come. Run hourly. */
@@ -167,8 +244,10 @@ export async function chargeDueBookings() {
   for (const { id } of data ?? []) {
     const r = await chargeBooking(id);
     if (r === "charged") results.charged++;
-    else if (r === "failed") results.failed++;
-    else results.other++;
+    else if (r === "failed") {
+      results.failed++;
+      await paymentFailed(id);
+    } else results.other++;
   }
   return results;
 }

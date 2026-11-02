@@ -30,15 +30,27 @@ const brandName = (b: string) => b.replace(/_/g, " ").replace(/\b\w/g, (ch) => c
  * session (or straight away when it's less than 24 hours away). Members who've paid before can reuse their
  * saved card. The booking form calls the function this registers.
  */
-export function CardSection({ amountCents, soon, register }: { amountCents: number; soon: boolean; register: (save: SaveCard | null) => void }) {
+export function CardSection({
+  amountCents,
+  soon,
+  register,
+  newOnly = false,
+}: {
+  amountCents: number;
+  soon: boolean;
+  register: (save: SaveCard | null) => void;
+  /** Ask for a new card instead of offering the saved one (after the saved one was declined). */
+  newOnly?: boolean;
+}) {
   // undefined while checking for a saved card, null when there isn't one (or they chose a different card).
-  const [saved, setSaved] = useState<SavedCard | null | undefined>(undefined);
+  const [saved, setSaved] = useState<SavedCard | null | undefined>(newOnly ? null : undefined);
   useEffect(() => {
+    if (newOnly) return;
     fetch("/api/stripe/saved-card")
       .then((r) => r.json())
       .then(({ card }: { card: SavedCard | null }) => setSaved(card))
       .catch(() => setSaved(null));
-  }, []);
+  }, [newOnly]);
   useEffect(() => {
     if (!saved) return;
     register(async () => ({ paymentMethodId: saved.id }));
@@ -71,9 +83,18 @@ export function CardSection({ amountCents, soon, register }: { amountCents: numb
             currency: "usd",
             appearance: {
               theme: "stripe",
-              variables: { colorPrimary: "#B34A2A", colorText: "#2D3748", borderRadius: "10px", fontFamily: "Plus Jakarta Sans, system-ui, sans-serif" },
+              variables: {
+                colorPrimary: "#B34A2A",
+                colorText: "#2D3748",
+                borderRadius: "10px",
+                fontFamily: "Plus Jakarta Sans, system-ui, sans-serif",
+              },
             },
-            fonts: [{ cssSrc: "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600&display=swap" }],
+            fonts: [
+              {
+                cssSrc: "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600&display=swap",
+              },
+            ],
           }}
         >
           <NewCard register={register} />
@@ -106,12 +127,22 @@ function NewCard({ register }: { register: (save: SaveCard | null) => void }) {
         const { error: invalid } = await withTimeout(elements.submit());
         if (invalid) return { error: invalid.message ?? "Check your card details." };
         const res = await withTimeout(fetch("/api/stripe/setup-intent", { method: "POST" }));
-        const { clientSecret } = (await res.json().catch(() => ({}))) as { clientSecret?: string };
+        const { clientSecret } = (await res.json().catch(() => ({}))) as {
+          clientSecret?: string;
+        };
         if (!clientSecret) return { error: TRY_AGAIN };
         const { error, setupIntent } = await withTimeout(
-          stripe.confirmSetup({ elements, clientSecret, redirect: "if_required", confirmParams: { return_url: window.location.href } }),
+          stripe.confirmSetup({
+            elements,
+            clientSecret,
+            redirect: "if_required",
+            confirmParams: { return_url: window.location.href },
+          }),
         );
-        if (error || !setupIntent?.payment_method) return { error: error?.message ?? "Your card couldn’t be saved. Please try another card." };
+        if (error || !setupIntent?.payment_method)
+          return {
+            error: error?.message ?? "Your card couldn’t be saved. Please try another card.",
+          };
         const pm = setupIntent.payment_method;
         return { paymentMethodId: typeof pm === "string" ? pm : pm.id };
       } catch {
@@ -126,7 +157,8 @@ function NewCard({ register }: { register: (save: SaveCard | null) => void }) {
       {state === "loading" && <p className="m-0 text-[15px] text-slate-600">Loading the card form…</p>}
       {state === "failed" ? (
         <p role="alert" className="m-0 rounded-md bg-peach-50 px-4 py-3 text-sm text-peach-800">
-          The card form didn&rsquo;t load. Please refresh the page. If it still doesn&rsquo;t appear, try turning off ad or privacy blockers for this site.
+          The card form didn&rsquo;t load. Please refresh the page. If it still doesn&rsquo;t appear, try turning off ad or privacy blockers for this
+          site.
         </p>
       ) : (
         <PaymentElement options={{ layout: "tabs" }} onReady={() => setState("ready")} onLoadError={() => setState("failed")} />

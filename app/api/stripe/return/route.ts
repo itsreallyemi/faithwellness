@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { payHeldChurchShares } from "@/lib/server/payments";
 import { payoutOwnerFor, payoutsPage, refreshPayouts } from "@/lib/server/stripe";
 import { supabaseServer } from "@/lib/supabase/server";
 
@@ -13,5 +14,7 @@ export async function GET(request: NextRequest) {
   if (!user) return NextResponse.redirect(`${origin}/sign-in`);
   const owner = await payoutOwnerFor(user.id, kind);
   const ready = owner ? await refreshPayouts(owner).catch(() => false) : false;
+  // Shares held while the church wasn't set up are paid out now.
+  if (ready && owner?.kind === "church") await payHeldChurchShares(owner.id).catch(() => 0);
   return NextResponse.redirect(await payoutsPage(origin, owner, ready ? "ready" : "incomplete"));
 }

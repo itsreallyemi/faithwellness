@@ -18,6 +18,7 @@ import { paymentSummary } from "@/lib/bookings";
 import { agreedFeeCents, proto, type ProtoBooking } from "@/lib/prototype/store";
 import { cancelReal } from "@/lib/supabase/bookings";
 import { zoneCity } from "@/lib/time";
+import { FixPayment } from "./FixPayment";
 import { ReportProblem } from "./ReportProblem";
 
 export function SessionView({ id, counselors }: { id: string; counselors: CounselorLite[] }) {
@@ -84,9 +85,7 @@ function Detail({ booking: b, counselor: c, email }: { booking: ProtoBooking; co
           </div>
 
           <div className="flex flex-col gap-1 rounded-md bg-peach-50 p-4">
-            <b className={`font-display text-2xl leading-8 font-medium! ${canceled ? "line-through" : ""}`}>
-              {formatSession(start, b.duration, tz)}
-            </b>
+            <b className={`font-display text-2xl leading-8 font-medium! ${canceled ? "line-through" : ""}`}>{formatSession(start, b.duration, tz)}</b>
             <span className="text-[13px] text-slate-600">Your time ({zoneCity(tz)})</span>
             {local && <span className="text-[13px] text-slate-600">{local}</span>}
           </div>
@@ -108,6 +107,9 @@ function Detail({ booking: b, counselor: c, email }: { booking: ProtoBooking; co
 
           {b.insurance && !canceled && <InsuranceStatus booking={b} counselor={c} />}
           {b.priceRequest && !canceled && <PriceRequestStatus booking={b} counselor={c} />}
+          {b.real && b.payment?.status === "failed" && !canceled && new Date(b.startIso).getTime() + b.duration * 60_000 > Date.now() && (
+            <FixPayment bookingId={b.id} amountCents={b.payment.amountCents} counselorName={c.preferredName} />
+          )}
           {b.real && (b.payment?.status === "charged" || b.payment?.status === "refunded") && new Date(b.startIso).getTime() <= Date.now() && (
             <ReportProblem bookingId={b.id} counselorName={c.preferredName} refunded={b.payment.status === "refunded"} />
           )}
@@ -120,7 +122,14 @@ function Detail({ booking: b, counselor: c, email }: { booking: ProtoBooking; co
               <Button
                 variant="secondary"
                 size="lg"
-                onClick={() => downloadIcs({ id: b.id, start, minutes: b.duration, meetUrl: b.meetUrl })}
+                onClick={() =>
+                  downloadIcs({
+                    id: b.id,
+                    start,
+                    minutes: b.duration,
+                    meetUrl: b.meetUrl,
+                  })
+                }
               >
                 <CalendarPlus size={18} strokeWidth={1.8} aria-hidden="true" /> Add to calendar
               </Button>
@@ -194,8 +203,8 @@ function Detail({ booking: b, counselor: c, email }: { booking: ProtoBooking; co
               <li className="flex gap-3">
                 <MessageCircle size={20} strokeWidth={1.8} className="mt-0.5 flex-none text-peach-700" aria-hidden="true" />
                 <span>
-                  The session is in your <Link href={`/messages/${c.slug}`}>messages with {c.preferredName}</Link>, so you can
-                  ask questions before you meet.
+                  The session is in your <Link href={`/messages/${c.slug}`}>messages with {c.preferredName}</Link>, so you can ask questions before
+                  you meet.
                 </span>
               </li>
               <li className="flex gap-3">
@@ -213,8 +222,7 @@ function Detail({ booking: b, counselor: c, email }: { booking: ProtoBooking; co
 const insuranceCopy = {
   pending: {
     title: "Insurance: checking your coverage",
-    body: (name: string) =>
-      `${name} is verifying your plan and will tell you about any copay before the session. You don’t need to do anything yet.`,
+    body: (name: string) => `${name} is verifying your plan and will tell you about any copay before the session. You don’t need to do anything yet.`,
   },
   verified: {
     title: "Insurance: coverage confirmed",
@@ -258,17 +266,17 @@ function InsuranceStatus({ booking: b, counselor: c }: { booking: ProtoBooking; 
       )}
       {/* PROTOTYPE ONLY: play the counselor's side. Real sessions are answered from the counselor's portal. */}
       {!b.real && (
-      <div className="flex flex-col gap-2 rounded-md border border-dashed border-peach-400 bg-white/70 px-3 py-2.5 text-sm text-peach-800">
-        <span>Prototype: act as {c.preferredName} verifying coverage.</span>
-        <div className="flex flex-wrap gap-2">
-          <Button className="min-h-10! text-sm" onClick={() => proto.setInsuranceStatus(b.id, "verified")}>
-            Coverage confirmed
-          </Button>
-          <Button variant="secondary" className="min-h-10! text-sm" onClick={() => proto.setInsuranceStatus(b.id, "not-covered")}>
-            Not covered
-          </Button>
+        <div className="flex flex-col gap-2 rounded-md border border-dashed border-peach-400 bg-white/70 px-3 py-2.5 text-sm text-peach-800">
+          <span>Prototype: act as {c.preferredName} verifying coverage.</span>
+          <div className="flex flex-wrap gap-2">
+            <Button className="min-h-10! text-sm" onClick={() => proto.setInsuranceStatus(b.id, "verified")}>
+              Coverage confirmed
+            </Button>
+            <Button variant="secondary" className="min-h-10! text-sm" onClick={() => proto.setInsuranceStatus(b.id, "not-covered")}>
+              Not covered
+            </Button>
+          </div>
         </div>
-      </div>
       )}
     </div>
   );
@@ -333,17 +341,17 @@ function PriceRequestStatus({ booking: b, counselor: c }: { booking: ProtoBookin
       )}
       {/* PROTOTYPE ONLY: play the counselor's side. Real sessions are answered from the counselor's portal. */}
       {!b.real && (
-      <div className="flex flex-col gap-2 rounded-md border border-dashed border-peach-400 bg-white/70 px-3 py-2.5 text-sm text-peach-800">
-        <span>Prototype: act as {c.preferredName} answering the request.</span>
-        <div className="flex flex-wrap gap-2">
-          <Button className="min-h-10! text-sm" onClick={() => proto.setPriceRequestStatus(b.id, "accepted")}>
-            Accept offer
-          </Button>
-          <Button variant="secondary" className="min-h-10! text-sm" onClick={() => proto.setPriceRequestStatus(b.id, "declined")}>
-            Can&rsquo;t lower it
-          </Button>
+        <div className="flex flex-col gap-2 rounded-md border border-dashed border-peach-400 bg-white/70 px-3 py-2.5 text-sm text-peach-800">
+          <span>Prototype: act as {c.preferredName} answering the request.</span>
+          <div className="flex flex-wrap gap-2">
+            <Button className="min-h-10! text-sm" onClick={() => proto.setPriceRequestStatus(b.id, "accepted")}>
+              Accept offer
+            </Button>
+            <Button variant="secondary" className="min-h-10! text-sm" onClick={() => proto.setPriceRequestStatus(b.id, "declined")}>
+              Can&rsquo;t lower it
+            </Button>
+          </div>
         </div>
-      </div>
       )}
     </div>
   );

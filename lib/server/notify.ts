@@ -11,7 +11,11 @@ async function counselorInfo(counselorId: string) {
     .select("preferred_name, slug, profile:profiles!inner(full_name, time_zone)")
     .eq("id", counselorId)
     .maybeSingle();
-  const c = data as unknown as { preferred_name: string; slug: string; profile: { full_name: string; time_zone: string } } | null;
+  const c = data as unknown as {
+    preferred_name: string;
+    slug: string;
+    profile: { full_name: string; time_zone: string };
+  } | null;
   return {
     name: c?.preferred_name || c?.profile.full_name || "your counselor",
     timeZone: c?.profile.time_zone ?? "",
@@ -56,7 +60,10 @@ export async function bookingConfirmed(bookingId: string, rescheduled: boolean) 
         to: c.email,
         subject: rescheduled ? `A session was moved to ${when(b.start_utc, c.timeZone)}` : `New session booked: ${when(b.start_utc, c.timeZone)}`,
         body: `Hi ${firstName(c.name)},\n\n${firstName(b.client_name)} ${rescheduled ? "moved their session to" : "booked a session for"} ${when(b.start_utc, c.timeZone)} (${b.duration} minutes). It's on your Google Calendar with the Meet link, followed by your 15-minute rest.`,
-        button: { label: "Open your sessions", href: `${SITE}/portal/sessions` },
+        button: {
+          label: "Open your sessions",
+          href: `${SITE}/portal/sessions`,
+        },
       }),
     ]);
   } catch (e) {
@@ -75,14 +82,20 @@ export async function bookingCanceled(bookingId: string, by: "client" | "counsel
         to: c.email,
         subject: `Session canceled: ${when(b.start_utc, c.timeZone)}`,
         body: `Hi ${firstName(c.name)},\n\n${firstName(b.client_name)} canceled their session on ${when(b.start_utc, c.timeZone)}. It's been removed from your Google Calendar, and the time is open again.`,
-        button: { label: "Open your sessions", href: `${SITE}/portal/sessions` },
+        button: {
+          label: "Open your sessions",
+          href: `${SITE}/portal/sessions`,
+        },
       });
     } else {
       await sendEmail({
         to: b.client_email,
         subject: `${c.name} canceled your session`,
         body: `Hi ${firstName(b.client_name)},\n\n${c.name} canceled your session on ${when(b.start_utc, b.client_time_zone)}.${reason.trim() ? `\n\nTheir note: ${reason.trim()}` : ""}\n\nYou won't be charged. You can pick another time whenever you're ready.`,
-        button: { label: `Book another time with ${c.name}`, href: `${SITE}/counselors` },
+        button: {
+          label: `Book another time with ${c.name}`,
+          href: `${SITE}/counselors`,
+        },
       });
     }
   } catch (e) {
@@ -150,7 +163,10 @@ export async function applicationDecided(applicationId: string) {
         to: a.email,
         subject: "A question about your FaithWellness application",
         body: `${hi}\n\nThank you for applying to FaithWellness. Before we can finish reviewing your application, we need a little more information:\n\n${a.admin_note}`,
-        button: { label: "Update your application", href: `${SITE}/for-counselors#apply` },
+        button: {
+          label: "Update your application",
+          href: `${SITE}/for-counselors#apply`,
+        },
       });
     } else if (a.status === "declined") {
       await sendEmail({
@@ -191,13 +207,19 @@ export async function sendSessionReminders(now = new Date()) {
           to: b.client_email,
           subject: `Reminder: your session with ${c.name}`,
           body: `Hi ${firstName(b.client_name)},\n\nA reminder that your ${b.duration}-minute session with ${c.name} is ${when(b.start_utc, b.client_time_zone)}.${b.meet_url ? `\n\nJoin on Google Meet when it starts: ${b.meet_url}` : ""}\n\nFind a quiet, private spot where you can talk freely. Need to change it? You can reschedule or cancel from your session page.`,
-          button: { label: "See your session", href: `${SITE}/sessions/${b.id}` },
+          button: {
+            label: "See your session",
+            href: `${SITE}/sessions/${b.id}`,
+          },
         }),
         sendEmail({
           to: c.email,
           subject: `Reminder: session ${when(b.start_utc, c.timeZone)}`,
           body: `Hi ${firstName(c.name)},\n\nA reminder that you're meeting ${firstName(b.client_name)} ${when(b.start_utc, c.timeZone)} (${b.duration} minutes).${b.meet_url ? `\n\nGoogle Meet: ${b.meet_url}` : ""}`,
-          button: { label: "Open your sessions", href: `${SITE}/portal/sessions` },
+          button: {
+            label: "Open your sessions",
+            href: `${SITE}/portal/sessions`,
+          },
         }),
       ]);
       sent++;
@@ -217,21 +239,34 @@ export async function churchApplicationDecided(applicationId: string) {
       .eq("id", applicationId)
       .maybeSingle();
     if (!a) return;
-    const app = a as unknown as { org_name: string; contact_name: string; email: string; status: string; admin_note: string; church: { slug: string } | null };
+    const app = a as unknown as {
+      org_name: string;
+      contact_name: string;
+      email: string;
+      status: string;
+      admin_note: string;
+      church: { slug: string } | null;
+    };
     const hi = `Hi ${firstName(app.contact_name)},`;
     if (app.status === "approved") {
       await sendEmail({
         to: app.email,
         subject: `${app.org_name} is on FaithWellness`,
         body: `${hi}\n\nWelcome. We've approved ${app.org_name}, and your church dashboard is ready.\n\nSign in with this email address to approve members, share your member code, and see your church's counselors.`,
-        button: { label: "Open your church dashboard", href: app.church ? `${SITE}/church/${app.church.slug}` : `${SITE}/for-churches` },
+        button: {
+          label: "Open your church dashboard",
+          href: app.church ? `${SITE}/church/${app.church.slug}` : `${SITE}/for-churches`,
+        },
       });
     } else if (app.status === "needs_info") {
       await sendEmail({
         to: app.email,
         subject: `A question about ${app.org_name}'s registration`,
         body: `${hi}\n\nThank you for registering ${app.org_name} with FaithWellness. Before we can finish, we need a little more information:\n\n${app.admin_note}`,
-        button: { label: "Update your registration", href: `${SITE}/for-churches#register` },
+        button: {
+          label: "Update your registration",
+          href: `${SITE}/for-churches#register`,
+        },
       });
     } else if (app.status === "declined") {
       await sendEmail({
@@ -256,7 +291,9 @@ export async function messageSent(messageId: string, senderId: string) {
     if (!m || m.sender_id !== senderId) return;
     const { data: t } = await db
       .from("threads")
-      .select("id, counselor_id, client_id, client_name, client_read_at, counselor_read_at, client_emailed_at, counselor_emailed_at, counselor:counselors(slug, is_sample)")
+      .select(
+        "id, counselor_id, client_id, client_name, client_read_at, counselor_read_at, client_emailed_at, counselor_emailed_at, counselor:counselors(slug, is_sample)",
+      )
       .eq("id", m.thread_id)
       .maybeSingle();
     const thread = t as unknown as {
@@ -292,7 +329,10 @@ export async function messageSent(messageId: string, senderId: string) {
         to: await emailOf(thread.client_id),
         subject: `${c.name} sent you a message`,
         body: `Hi ${firstName(thread.client_name)},\n\n${c.name} sent you a message on FaithWellness. For your privacy, read and reply on the site.`,
-        button: { label: "Read the message", href: `${SITE}/messages/${thread.counselor?.slug ?? ""}` },
+        button: {
+          label: "Read the message",
+          href: `${SITE}/messages/${thread.counselor?.slug ?? ""}`,
+        },
       });
     }
     await db
@@ -320,7 +360,16 @@ export async function problemReported(problemId: string) {
       .select("booking_id, counselor_id, reason, booking:bookings(start_utc, client_name, amount_cents)")
       .eq("id", problemId)
       .maybeSingle();
-    const problem = p as unknown as { booking_id: string; counselor_id: string; reason: string; booking: { start_utc: string; client_name: string; amount_cents: number } | null } | null;
+    const problem = p as unknown as {
+      booking_id: string;
+      counselor_id: string;
+      reason: string;
+      booking: {
+        start_utc: string;
+        client_name: string;
+        amount_cents: number;
+      } | null;
+    } | null;
     if (!problem?.booking) return;
     const c = await counselorInfo(problem.counselor_id);
     const what = `${firstName(problem.booking.client_name)} reported ${problemReasons[problem.reason] ?? "a problem"} with their session on ${when(problem.booking.start_utc, c.timeZone)}`;
@@ -377,5 +426,31 @@ export async function problemResolved(problemId: string) {
     });
   } catch (e) {
     console.error("problemResolved email", e instanceof Error ? e.message : e);
+  }
+}
+
+/** A saved card was declined when charged: ask the member for another card, and let the counselor know. */
+export async function paymentFailed(bookingId: string) {
+  try {
+    const b = await bookingFacts(bookingId);
+    if (!b) return;
+    const { data } = await adminDb().from("bookings").select("amount_cents").eq("id", bookingId).maybeSingle();
+    const amount = `$${Math.round((data?.amount_cents ?? 0) / 100)}`;
+    const c = await counselorInfo(b.counselor_id);
+    await sendEmail({
+      to: b.client_email,
+      subject: "Your payment didn't go through",
+      body: `Hi ${firstName(b.client_name)},\n\nWe tried to charge your card ${amount} for your session with ${c.name} on ${when(b.start_utc, b.client_time_zone)}, but it was declined. Please add another card so your session can go ahead.`,
+      button: { label: "Update your card", href: `${SITE}/sessions/${b.id}` },
+    });
+    if (c.email)
+      await sendEmail({
+        to: c.email,
+        subject: `${firstName(b.client_name)}'s payment didn't go through`,
+        body: `Hi ${c.name},\n\n${firstName(b.client_name)}'s card was declined for your session on ${when(b.start_utc, c.timeZone)}. We've asked them to add another card. You'll see "paid" on the session once it goes through.`,
+        button: { label: "See your sessions", href: `${SITE}/portal/sessions` },
+      });
+  } catch (e) {
+    console.error("paymentFailed email", e instanceof Error ? e.message : e);
   }
 }
