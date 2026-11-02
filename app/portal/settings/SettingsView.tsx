@@ -14,6 +14,7 @@ import type { AvailabilityRule } from "@/lib/types";
 import { usePortal } from "../PortalShell";
 import { field, PageHeader, Panel, smallButton } from "../ui";
 import { CalendarSettings } from "./CalendarSettings";
+import { PayoutsPanel } from "./PayoutsPanel";
 import { ServicesSettings } from "./ServicesSettings";
 
 type Tab = "scheduling" | "bio" | "fees" | "services" | "notifications";
@@ -559,7 +560,7 @@ function Profile() {
 
 /** Session fees, sliding scale and insurance. Which lengths are offered is set under Scheduling. */
 function Fees() {
-  const { counselor, settings, save } = usePortal();
+  const { counselor, settings, save, real } = usePortal();
   const [fees, setFees] = useState({ 30: dollars(settings.fee30Cents), 60: dollars(settings.fee60Cents) });
   const [free, setFree] = useState({ 30: settings.free30, 60: settings.free60 });
   const [error, setError] = useState("");
@@ -652,6 +653,7 @@ function Fees() {
         </form>
       </Panel>
       <div className="flex flex-col gap-6">
+        {real && <PayoutsPanel />}
         {counselor.church && (
           <Panel id="member-care" title="Member Benefits">
             <label className="flex items-start gap-3 rounded-md bg-cream p-4">

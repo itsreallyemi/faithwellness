@@ -8,6 +8,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { cn } from "@/lib/cn";
 import { sampleRoster, sampleSessionsThisMonth } from "@/lib/prototype/church-admin";
 import {
   isUpForRenewal,
@@ -76,15 +77,18 @@ function Header({ church }: { church: Church }) {
 function RealChurchAdmin({ church, counselors }: Props) {
   const [rows, setRows] = useState<Row[] | null>(null);
   const [codes, setCodes] = useState<MemberCode[]>([]);
+  const [payoutsReady, setPayoutsReady] = useState(false);
   const [sessions, setSessions] = useState(0);
 
   const load = useCallback(async () => {
     const sb = supabaseBrowser();
-    const [{ data: codeRows }, { data: members }, { data: count }] = await Promise.all([
+    const [{ data: codeRows }, { data: members }, { data: count }, { data: ready }] = await Promise.all([
       sb.from("church_codes").select("id, code, label").order("created_at"),
       sb.from("church_memberships").select("id, status, member_name, member_email, requested_at, updated_at, expires_at").order("requested_at", { ascending: false }),
       sb.rpc("my_church_member_sessions_this_month"),
+      sb.rpc("my_church_payouts_ready"),
     ]);
+    setPayoutsReady(Boolean(ready));
     setCodes((codeRows as MemberCode[] | null) ?? []);
     setSessions((count as number | null) ?? 0);
     setRows(
@@ -134,7 +138,56 @@ function RealChurchAdmin({ church, counselors }: Props) {
         <NoMemberCare church={church} manage={manage} />
       )}
       <Counselors counselors={counselors} memberCare={codes.length > 0} />
+      <ChurchPayouts church={church} ready={payoutsReady} />
     </div>
+  );
+}
+
+const payoutOutcomes: Record<string, string> = {
+  ready: "Payouts are set up.",
+  incomplete: "Stripe still needs a few details before your church can be paid. Continue where you left off.",
+  failed: "Something went wrong reaching Stripe. Please try again.",
+  "not-configured": "Payments aren’t switched on for this site yet.",
+};
+
+/** The church receives 8% of paid sessions with its counselors, through its own Stripe account. */
+function ChurchPayouts({ church, ready }: { church: Church; ready: boolean }) {
+  useEffect(() => {
+    const outcome = payoutOutcomes[new URLSearchParams(window.location.search).get("payouts") ?? ""];
+    if (outcome) proto.toast(outcome);
+  }, []);
+  const link = (href: string, label: string, primary: boolean) => (
+    <a
+      href={href}
+      className={cn(
+        "inline-flex min-h-11 items-center justify-center self-start rounded-pill px-5 text-[15px] no-underline",
+        primary ? "bg-peach-500 font-bold text-slate-900! hover:bg-peach-400" : "border-[1.5px] border-slate-900 font-semibold text-slate-900! hover:bg-white",
+      )}
+    >
+      {label}
+    </a>
+  );
+  return (
+    <Section
+      id="payouts"
+      title="Payouts"
+      intro={`${church.name} receives 8% of every paid session with your counselors, paid to your bank account through Stripe.`}
+    >
+      {ready ? (
+        <>
+          <span className="text-[15px] font-semibold text-sage-700">Payouts are on</span>
+          {link("/api/stripe/dashboard?for=church", "View payouts in Stripe", false)}
+        </>
+      ) : (
+        <>
+          <p className="m-0 text-[15px] leading-normal text-slate-600">
+            Stripe asks for your church&rsquo;s details (such as its EIN) and bank account. FaithWellness never sees your bank
+            details. Until it&rsquo;s set up, your share is kept for you.
+          </p>
+          {link("/api/stripe/connect?for=church", "Set up payouts", true)}
+        </>
+      )}
+    </Section>
   );
 }
 

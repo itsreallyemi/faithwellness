@@ -10,8 +10,8 @@ import type { Counselor, CounselorService } from "@/lib/types";
 import { supabaseBrowser } from "./client";
 
 /** Keys from public.counselor_missing(), in checklist order. */
-export type GoLiveItem = "introduction" | "focus" | "fees" | "hours" | "calendar";
-export const GO_LIVE_ITEMS: GoLiveItem[] = ["introduction", "focus", "fees", "hours", "calendar"];
+export type GoLiveItem = "introduction" | "focus" | "fees" | "hours" | "calendar" | "payouts";
+export const GO_LIVE_ITEMS: GoLiveItem[] = ["introduction", "focus", "fees", "hours", "calendar", "payouts"];
 
 /** The counselor's Google Calendar connection, without its tokens (only the server can read those). */
 export type CalendarConnection = {
@@ -31,16 +31,18 @@ export type OwnCounselor = {
   calendar: CalendarConnection | null;
   /** Real bookings with this counselor, as stored. */
   bookings: BookingRow[];
+  /** Stripe payouts: started (has an account) and ready to receive money. */
+  payouts: { started: boolean; ready: boolean };
 };
 
 export async function loadOwnCounselor(slug: string): Promise<OwnCounselor | null> {
   const sb = supabaseBrowser();
   const [{ data }, { data: missing }] = await Promise.all([
-    sb.from("counselors").select(`id, is_published, ${COUNSELOR_SELECT}`).eq("slug", slug).maybeSingle(),
+    sb.from("counselors").select(`id, is_published, payouts_ready, stripe_account_id, ${COUNSELOR_SELECT}`).eq("slug", slug).maybeSingle(),
     sb.rpc("my_go_live_checklist"),
   ]);
   if (!data) return null;
-  const row = data as unknown as CounselorRow & { id: string; is_published: boolean };
+  const row = data as unknown as CounselorRow & { id: string; is_published: boolean; payouts_ready: boolean; stripe_account_id: string | null };
   const [{ count }, { data: cal }, { data: bookings }] = await Promise.all([
     sb.from("service_requests").select("id", { count: "exact", head: true }).eq("counselor_id", row.id).eq("status", "new"),
     sb
@@ -57,6 +59,7 @@ export async function loadOwnCounselor(slug: string): Promise<OwnCounselor | nul
     missing: (missing as GoLiveItem[] | null) ?? [],
     newRequests: count ?? 0,
     bookings: (bookings as BookingRow[] | null) ?? [],
+    payouts: { started: Boolean(row.stripe_account_id), ready: row.payouts_ready },
     calendar: cal
       ? {
           googleEmail: cal.google_email,

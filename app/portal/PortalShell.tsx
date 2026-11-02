@@ -65,6 +65,8 @@ type Portal = {
   ownBookings: BookingRow[];
   /** Real counselors' conversations with their clients, newest first. */
   realThreads: ThreadRow[];
+  /** Real counselors' Stripe payouts. */
+  payouts: { started: boolean; ready: boolean };
   reloadThreads: () => void;
 };
 
@@ -210,6 +212,7 @@ export function PortalShell({
       ownBookings: ownLoaded?.bookings ?? [],
       realThreads,
       reloadThreads,
+      payouts: ownLoaded?.payouts ?? { started: false, ready: false },
       serviceTypes,
       saveServices: (next, travel) => {
         if (!ownLoaded) return;

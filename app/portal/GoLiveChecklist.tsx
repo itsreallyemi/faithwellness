@@ -20,6 +20,11 @@ const steps: Record<GoLiveItem, { label: string; todo: string; href: string }> =
     todo: "So clients only see times you're free, and sessions get a Meet link.",
     href: "/portal/settings?tab=scheduling#calendar",
   },
+  payouts: {
+    label: "Set up payouts",
+    todo: "Connect a bank account through Stripe, so you're paid for sessions.",
+    href: "/portal/settings?tab=fees#payouts",
+  },
 };
 
 /**
@@ -27,7 +32,7 @@ const steps: Record<GoLiveItem, { label: string; todo: string; href: string }> =
  * nothing is missing (see 0006_counselor_go_live.sql), so this only shows progress and where to go next.
  */
 export function GoLiveChecklist({ className }: { className?: string }) {
-  const { real, live, missing, counselor } = usePortal();
+  const { real, live, missing, counselor, settings } = usePortal();
   if (!real) return null;
 
   if (live) {
@@ -45,8 +50,11 @@ export function GoLiveChecklist({ className }: { className?: string }) {
     );
   }
 
-  const done = GO_LIVE_ITEMS.filter((k) => !missing.includes(k)).length;
-  const next = GO_LIVE_ITEMS.find((k) => missing.includes(k));
+  // Payouts only matter for counselors who charge for a session length they offer.
+  const charges = (settings.offers30 && !settings.free30) || (settings.offers60 && !settings.free60);
+  const items = GO_LIVE_ITEMS.filter((k) => k !== "payouts" || charges);
+  const done = items.filter((k) => !missing.includes(k)).length;
+  const next = items.find((k) => missing.includes(k));
 
   return (
     <section aria-labelledby="go-live" className={cn("flex flex-col gap-3 rounded-lg border border-border-warm bg-cream p-4", className)}>
@@ -55,14 +63,14 @@ export function GoLiveChecklist({ className }: { className?: string }) {
           Get ready to go live
         </h2>
         <span className="text-[13px] leading-snug text-slate-600">
-          {done} of {GO_LIVE_ITEMS.length} done. Your profile goes live on its own when all are ticked.
+          {done} of {items.length} done. Your profile goes live on its own when all are ticked.
         </span>
         <div className="mt-1 h-1.5 overflow-hidden rounded-pill bg-border" aria-hidden="true">
-          <div className="h-full rounded-pill bg-sage-700" style={{ width: `${(done / GO_LIVE_ITEMS.length) * 100}%` }} />
+          <div className="h-full rounded-pill bg-sage-700" style={{ width: `${(done / items.length) * 100}%` }} />
         </div>
       </div>
       <ol className="m-0 flex list-none flex-col gap-0.5 p-0">
-        {GO_LIVE_ITEMS.map((k) => {
+        {items.map((k) => {
           const complete = !missing.includes(k);
           const step = steps[k];
           return (

@@ -25,7 +25,8 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${fraunces.variable} ${jakarta.variable}`}>
-      <body>
+      {/* Browser extensions (WOT, ColorZilla…) add attributes to <body> before React loads; ignore just those. */}
+      <body suppressHydrationWarning>
         <AuthSync />
         {children}
       </body>
