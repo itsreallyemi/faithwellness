@@ -1,9 +1,17 @@
 import { after, NextResponse, type NextRequest } from "next/server";
-import { applicationDecided, churchApplicationDecided, messageSent, serviceAnswered, serviceRequested } from "@/lib/server/notify";
+import {
+  applicationDecided,
+  churchApplicationDecided,
+  messageSent,
+  problemReported,
+  problemResolved,
+  serviceAnswered,
+  serviceRequested,
+} from "@/lib/server/notify";
 import { adminDb } from "@/lib/server/secrets";
 import { supabaseServer } from "@/lib/supabase/server";
 
-type Kind = "service-requested" | "service-answered" | "application-decided" | "church-application-decided" | "message-sent";
+type Kind = "service-requested" | "service-answered" | "application-decided" | "church-application-decided" | "message-sent" | "problem-reported" | "problem-resolved";
 
 /**
  * Called by the browser right after something it saved through Supabase (a service request, a reply, an
@@ -20,7 +28,14 @@ export async function POST(request: NextRequest) {
   if (!id) return NextResponse.json({ ok: false }, { status: 400 });
   const db = adminDb();
 
-  if (kind === "message-sent") {
+  if (kind === "problem-reported" || kind === "problem-resolved") {
+    // Reported by the member; resolved by the counselor or an admin.
+    const { data: p } = await db.from("session_problems").select("client_id, counselor_id").eq("id", id).maybeSingle();
+    const { data: me } = await db.from("profiles").select("role").eq("id", user.id).maybeSingle();
+    const allowed = kind === "problem-reported" ? p?.client_id === user.id : p?.counselor_id === user.id || me?.role === "admin";
+    if (!allowed) return NextResponse.json({ ok: false }, { status: 404 });
+    after(() => (kind === "problem-reported" ? problemReported(id) : problemResolved(id)));
+  } else if (kind === "message-sent") {
     // messageSent checks the caller is the sender.
     after(() => messageSent(id, user.id));
   } else if (kind === "service-requested" || kind === "service-answered") {

@@ -40,6 +40,7 @@ const churchLinks = (slug: string): NavLink[] => [
 const staffLinks: NavLink[] = [
   { href: "/admin", label: "Counselors", match: (p) => p === "/admin" },
   { href: "/admin/churches", label: "Churches", match: (p) => p.startsWith("/admin/churches") },
+  { href: "/admin/problems", label: "Problems", match: (p) => p.startsWith("/admin/problems") },
   { href: "/counselors", label: "Directory", match: (p) => p === "/" || p.startsWith("/counselors") },
 ];
 const clientLinks: NavLink[] = [

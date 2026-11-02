@@ -1,4 +1,5 @@
 import "server-only";
+import { contactEmail } from "@/lib/site";
 import { emailOf, firstName, sendEmail, SITE, when } from "./email";
 import { adminDb } from "./secrets";
 
@@ -300,5 +301,81 @@ export async function messageSent(messageId: string, senderId: string) {
       .eq("id", thread.id);
   } catch (e) {
     console.error("messageSent email", e instanceof Error ? e.message : e);
+  }
+}
+
+const problemReasons: Record<string, string> = {
+  no_show: "the counselor didn't join",
+  technical: "a video or connection problem",
+  cut_short: "the session was cut short",
+  other: "another problem",
+};
+
+/** A member reported a problem with a paid session: tell the counselor and FaithWellness. */
+export async function problemReported(problemId: string) {
+  try {
+    const db = adminDb();
+    const { data: p } = await db
+      .from("session_problems")
+      .select("booking_id, counselor_id, reason, booking:bookings(start_utc, client_name, amount_cents)")
+      .eq("id", problemId)
+      .maybeSingle();
+    const problem = p as unknown as { booking_id: string; counselor_id: string; reason: string; booking: { start_utc: string; client_name: string; amount_cents: number } | null } | null;
+    if (!problem?.booking) return;
+    const c = await counselorInfo(problem.counselor_id);
+    const what = `${firstName(problem.booking.client_name)} reported ${problemReasons[problem.reason] ?? "a problem"} with their session on ${when(problem.booking.start_utc, c.timeZone)}`;
+    await Promise.all([
+      sendEmail({
+        to: c.email,
+        subject: `A client reported a problem with a session`,
+        body: `Hi ${firstName(c.name)},\n\n${what}. Please look at it in your portal: you can refund the session or reply with what happened.`,
+        button: { label: "See the report", href: `${SITE}/portal` },
+      }),
+      sendEmail({
+        to: contactEmail,
+        subject: `Problem reported: session with ${c.name}`,
+        body: `${what} (paid $${Math.round(problem.booking.amount_cents / 100)}). If ${c.name} doesn't respond, you can refund it from the Admin dashboard.`,
+        button: { label: "Open Problems", href: `${SITE}/admin/problems` },
+      }),
+    ]);
+  } catch (e) {
+    console.error("problemReported email", e instanceof Error ? e.message : e);
+  }
+}
+
+/** A paid session was refunded: tell the member. */
+export async function sessionRefunded(bookingId: string) {
+  try {
+    const b = await bookingFacts(bookingId);
+    if (!b) return;
+    const { data } = await adminDb().from("bookings").select("amount_cents").eq("id", bookingId).maybeSingle();
+    const c = await counselorInfo(b.counselor_id);
+    await sendEmail({
+      to: b.client_email,
+      subject: "Your session was refunded",
+      body: `Hi ${firstName(b.client_name)},\n\nWe've refunded $${Math.round((data?.amount_cents ?? 0) / 100)} for your session with ${c.name} on ${when(b.start_utc, b.client_time_zone)}. It usually reaches your card in 5 to 10 days.`,
+      button: { label: "See your session", href: `${SITE}/sessions/${b.id}` },
+    });
+  } catch (e) {
+    console.error("sessionRefunded email", e instanceof Error ? e.message : e);
+  }
+}
+
+/** A report was resolved without a refund: tell the member, with the explanation. */
+export async function problemResolved(problemId: string) {
+  try {
+    const { data: p } = await adminDb().from("session_problems").select("booking_id, response").eq("id", problemId).maybeSingle();
+    if (!p) return;
+    const b = await bookingFacts(p.booking_id);
+    if (!b) return;
+    const c = await counselorInfo(b.counselor_id);
+    await sendEmail({
+      to: b.client_email,
+      subject: "About the problem you reported",
+      body: `Hi ${firstName(b.client_name)},\n\nWe looked at the problem you reported with your session with ${c.name} on ${when(b.start_utc, b.client_time_zone)}.\n\n${p.response}\n\nIf you'd like to talk it through, just reply to this email.`,
+      button: { label: "See your session", href: `${SITE}/sessions/${b.id}` },
+    });
+  } catch (e) {
+    console.error("problemResolved email", e instanceof Error ? e.message : e);
   }
 }

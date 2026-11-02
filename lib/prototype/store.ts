@@ -36,6 +36,8 @@ export type ProtoBooking = {
   priceRequest?: ProtoPriceRequest;
   /** Saved in the database (a counselor with a connected calendar), not just this browser. */
   real?: boolean;
+  /** Real paid sessions: the saved card and when it's (or was) charged. */
+  payment?: { status: string; amountCents: number; dueIso: string | null; chargedIso: string | null; error: string };
 };
 
 export type ProtoPriceRequest = {

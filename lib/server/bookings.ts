@@ -3,6 +3,7 @@ import { openSlots } from "@/lib/availability";
 import { BOOKING_SELECT, type BookingRow } from "@/lib/bookings";
 import type { AvailabilityRule, Duration } from "@/lib/types";
 import { accessTokenFor, deleteSessionEvents, freeBusy } from "./google";
+import { refundBooking } from "./payments";
 import { adminDb } from "./secrets";
 
 /** A published counselor with a connected calendar: everything booking needs, read with the service role. */
@@ -84,6 +85,11 @@ export async function cancelBooking(id: string, by: "client" | "counselor", reas
   if (token && integration?.write_calendar) {
     await deleteSessionEvents(token, integration.write_calendar, b.google_event_id, b.rest_event_id);
   }
+  // Payment: nothing is charged if it hadn't been yet; a counselor cancelling refunds a charged session in full.
+  // (A member cancelling inside 24 hours has already been charged, and isn't refunded.)
+  if (by === "counselor") await refundBooking(id);
+  await db.from("bookings").update({ payment_status: "canceled" }).eq("id", id).eq("payment_status", "card_saved");
+
   const { data } = await db
     .from("bookings")
     .update({ status: "canceled", canceled_by: by, cancel_reason: reason, canceled_at: new Date().toISOString() })

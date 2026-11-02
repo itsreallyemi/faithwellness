@@ -18,6 +18,8 @@ const bookErrors: Record<string, string> = {
   "calendar-failed": "We couldn’t add the session to the counselor’s calendar, so nothing was booked. Please try again.",
   "signed-out": "Please sign in again, then book.",
   "own-profile": "You can’t book a session with yourself.",
+  "card-needed": "Please add a card to book this session.",
+  "card-declined": "Your card was declined, so the session wasn’t booked. Please try another card.",
 };
 
 /** Books with a real counselor. Returns the new booking, or an error message for the client. */

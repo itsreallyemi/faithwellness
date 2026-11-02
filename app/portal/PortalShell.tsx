@@ -16,7 +16,7 @@ import { Logo } from "@/components/ui/Logo";
 import { cn } from "@/lib/cn";
 import { defaultSettings, sampleSessions, type PortalSession, type PortalSettings } from "@/lib/prototype/portal";
 import { agreedFeeCents, proto, useProto, type ProtoBooking, type ProtoState } from "@/lib/prototype/store";
-import { toProtoBooking, type BookingRow } from "@/lib/bookings";
+import { paymentSummary, toProtoBooking, type BookingRow } from "@/lib/bookings";
 import { formatFee } from "@/lib/format";
 import { contactEmail } from "@/lib/site";
 import { authEnabled, ownCounselorSlug, useAuthState } from "@/lib/supabase/client";
@@ -291,6 +291,7 @@ function paymentLabel(b: ProtoBooking) {
     const status = { pending: "waiting for you", accepted: "accepted", declined: "declined · usual fee" }[b.priceRequest.status];
     return `${offer} · ${status}`;
   }
+  if (b.payment) return paymentSummary(b.payment);
   return formatFee(agreedFeeCents(b));
 }
 

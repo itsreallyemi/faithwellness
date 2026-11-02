@@ -14,9 +14,11 @@ import { formatFee } from "@/lib/format";
 import { downloadIcs } from "@/lib/prototype/ics";
 import { counselorLocal, formatSession } from "@/lib/prototype/format";
 import type { CounselorLite } from "@/lib/prototype/lite";
+import { paymentSummary } from "@/lib/bookings";
 import { agreedFeeCents, proto, type ProtoBooking } from "@/lib/prototype/store";
 import { cancelReal } from "@/lib/supabase/bookings";
 import { zoneCity } from "@/lib/time";
+import { ReportProblem } from "./ReportProblem";
 
 export function SessionView({ id, counselors }: { id: string; counselors: CounselorLite[] }) {
   return (
@@ -106,6 +108,9 @@ function Detail({ booking: b, counselor: c, email }: { booking: ProtoBooking; co
 
           {b.insurance && !canceled && <InsuranceStatus booking={b} counselor={c} />}
           {b.priceRequest && !canceled && <PriceRequestStatus booking={b} counselor={c} />}
+          {b.real && (b.payment?.status === "charged" || b.payment?.status === "refunded") && new Date(b.startIso).getTime() <= Date.now() && (
+            <ReportProblem bookingId={b.id} counselorName={c.preferredName} refunded={b.payment.status === "refunded"} />
+          )}
 
           {!canceled && (
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
@@ -271,6 +276,8 @@ function InsuranceStatus({ booking: b, counselor: c }: { booking: ProtoBooking; 
 
 /** The fee line for a booking the client has made. Only the client and counselor ever see it. */
 export function feeSummary(b: ProtoBooking, name: string) {
+  // Real paid sessions: how the saved card is doing.
+  if (b.payment) return paymentSummary(b.payment);
   const pr = b.priceRequest;
   if (b.feeCents === 0) return "Free";
   if (!pr) return `${formatFee(b.feeCents)}, paid to ${name} directly`;

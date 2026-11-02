@@ -30,6 +30,11 @@ export type BookingRow = {
   canceled_by: "client" | "counselor" | null;
   cancel_reason: string;
   created_at: string;
+  amount_cents: number;
+  payment_status: "none" | "card_saved" | "charging" | "charged" | "failed" | "refunded" | "canceled";
+  charge_due_at: string | null;
+  charged_at: string | null;
+  payment_error: string;
   counselor: { slug: string } | null;
 };
 
@@ -54,6 +59,10 @@ export function toProtoBooking(r: BookingRow): ProtoBooking {
         ? { provider: r.insurance_provider, memberIdLast4: r.insurance_member_last4 ?? "", groupNumber: r.insurance_group ?? "", status: r.insurance_status }
         : undefined,
     priceRequest: r.offer_status ? { offeredCents: r.offer_cents ?? 0, note: r.offer_note, status: r.offer_status } : undefined,
+    payment:
+      r.payment_status && r.payment_status !== "none"
+        ? { status: r.payment_status, amountCents: r.amount_cents, dueIso: r.charge_due_at, chargedIso: r.charged_at, error: r.payment_error }
+        : undefined,
     real: true,
   };
 }
@@ -68,4 +77,29 @@ export type NewBooking = {
   rescheduleOf: string | null;
   offer: { cents: number; note: string } | null;
   insurance: { provider: string; memberIdLast4: string; group: string } | null;
+  /** The member's saved card (from a Stripe SetupIntent), needed when the session has a fee. */
+  paymentMethodId: string | null;
 };
+
+/** A short line about a real paid session's payment, for the member and counselor. */
+export function paymentSummary(p: NonNullable<ProtoBooking["payment"]>, timeZone?: string) {
+  const amount = `$${Math.round(p.amountCents / 100)}`;
+  const day = (iso: string | null) =>
+    iso ? new Date(iso).toLocaleString("en-US", { timeZone, weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "";
+  switch (p.status) {
+    case "card_saved":
+      return `${amount}, card saved · charged ${day(p.dueIso)}`;
+    case "charging":
+      return `${amount}, charging now`;
+    case "charged":
+      return `${amount} paid`;
+    case "failed":
+      return `${amount} · payment didn’t go through`;
+    case "refunded":
+      return `${amount} refunded`;
+    case "canceled":
+      return "Not charged";
+    default:
+      return amount;
+  }
+}

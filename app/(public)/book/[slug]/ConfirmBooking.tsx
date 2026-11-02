@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { ChevronLeft, Lock, Video } from "lucide-react";
+import { useCallback, useRef, useState } from "react";
+import { ChevronLeft, CreditCard, Lock, Video } from "lucide-react";
 import { useViewerTimeZone } from "@/components/LocalTime";
 import { MemberBadge } from "@/components/prototype/MemberBadge";
 import { RequireSignIn } from "@/components/prototype/RequireSignIn";
@@ -19,6 +19,7 @@ import { proto, useIsMemberOf } from "@/lib/prototype/store";
 import { bookReal } from "@/lib/supabase/bookings";
 import { zoneCity } from "@/lib/time";
 import type { Duration } from "@/lib/types";
+import { CardSection, paymentsEnabled, type SaveCard } from "./CardSection";
 
 const OTHER = "other";
 const insField = "min-h-12 w-full rounded-md border border-border bg-white px-4 text-base aria-invalid:border-peach-700";
@@ -99,7 +100,16 @@ function Form({
   const inPast = start.getTime() < Date.now();
   const back = `/counselors/${c.slug}?duration=${duration}${reschedule ? `&reschedule=${reschedule}` : ""}#book`;
 
-  const confirm = (e: React.FormEvent) => {
+  // Paid sessions with real counselors save a card (charged 24 hours before). Moving a session keeps its card.
+  const owedCents = !showPrice ? 0 : offering ? (cantPay ? 0 : Math.max(0, Math.round(offerDollars * 100))) : usualFee;
+  const needsCard = real && paymentsEnabled && owedCents > 0 && !rescheduling;
+  const soon = start.getTime() - Date.now() < 24 * 3_600_000;
+  const saveCard = useRef<SaveCard | null>(null);
+  const registerCard = useCallback((fn: SaveCard | null) => {
+    saveCard.current = fn;
+  }, []);
+
+  const confirm = async (e: React.FormEvent) => {
     e.preventDefault();
     const problems = usingInsurance ? insuranceProblems() : {};
     setInsErrors(problems);
@@ -111,8 +121,18 @@ function Form({
     setPending(true);
     setBookError("");
     if (real) {
+      let paymentMethodId: string | null = null;
+      if (needsCard) {
+        const saved = saveCard.current ? await saveCard.current() : { error: "The card form is still loading. Please try again." };
+        if ("error" in saved) {
+          setPending(false);
+          return setBookError(saved.error);
+        }
+        paymentMethodId = saved.paymentMethodId;
+      }
       // The server re-checks the calendar, saves the booking and writes the Google event with its Meet link.
       bookReal({
+        paymentMethodId,
         slug: c.slug,
         start: startIso,
         duration,
@@ -521,6 +541,7 @@ function Form({
           <IntakeSharingNote counselorName={c.preferredName} />
 
           <div className="flex flex-col gap-1">
+            {needsCard && <CardSection amountCents={owedCents} soon={soon} register={registerCard} />}
             <label className="flex cursor-pointer items-start gap-3 text-[15px] leading-normal">
               <input
                 type="checkbox"
@@ -534,8 +555,8 @@ function Form({
                 className="mt-0.5 size-5 flex-none accent-peach-700"
               />
               <span>
-                I understand sessions are free to cancel or reschedule up to 24 hours before, and that FaithWellness
-                isn&rsquo;t an emergency service.
+                I understand sessions are free to cancel or reschedule up to 24 hours before{needsCard ? " (after that, the fee isn’t refunded)" : ""},
+                and that FaithWellness isn&rsquo;t an emergency service.
               </span>
             </label>
             {showError && (
@@ -545,6 +566,31 @@ function Form({
             )}
           </div>
 
+          {needsCard && (
+            <div role="note" className="flex items-start gap-3 rounded-md border border-peach-400 bg-peach-50 px-4 py-3.5 text-[15px] leading-normal">
+              <CreditCard size={20} strokeWidth={1.8} className="mt-0.5 flex-none text-peach-700" aria-hidden="true" />
+              {soon ? (
+                <span>
+                  <b>Your card is charged {formatFee(owedCents)} now,</b> because your session starts in less than 24 hours.
+                </span>
+              ) : (
+                <span>
+                  <b>You won&rsquo;t be charged today.</b> We&rsquo;ll charge your card <b>{formatFee(owedCents)}</b> on{" "}
+                  <b>
+                    {new Date(start.getTime() - 24 * 3_600_000).toLocaleString("en-US", {
+                      timeZone: tz,
+                      weekday: "short",
+                      month: "short",
+                      day: "numeric",
+                      hour: "numeric",
+                      minute: "2-digit",
+                    })}
+                  </b>
+                  , 24 hours before your session. Cancel before then and you won&rsquo;t be charged.
+                </span>
+              )}
+            </div>
+          )}
           {bookError && (
             <p role="alert" className="m-0 rounded-md bg-peach-50 px-4 py-3 text-sm text-peach-800">
               {bookError}{" "}
