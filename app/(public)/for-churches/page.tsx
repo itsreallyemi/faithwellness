@@ -17,9 +17,12 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { accreditingBodies } from "@/lib/accreditation";
+import { getAccreditingBodies } from "@/lib/accreditation";
 import { getCounselors } from "@/lib/counselors";
 import { RegisterForm } from "./RegisterForm";
+
+// Churches edit their accreditation from their dashboard; refresh the list every minute.
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "For churches",
@@ -103,6 +106,7 @@ const faqs = [
 ];
 
 export default async function ForChurchesPage() {
+  const accreditingBodies = await getAccreditingBodies();
   const all = await getCounselors();
   const ruth = all.find((c) => c.slug === "ruth-okafor");
   const james = all.find((c) => c.slug === "james-whitfield");

@@ -5,8 +5,11 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { CrisisNotice } from "@/components/ui/CrisisNotice";
-import { accreditingBodies, type AccreditingBody } from "@/lib/accreditation";
+import { getAccreditingBodies, type AccreditingBody } from "@/lib/accreditation";
 import { getCounselors } from "@/lib/counselors";
+
+// Churches edit their requirements from their dashboard; refresh every minute.
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "Accreditation",
@@ -28,7 +31,7 @@ const steps = [
   {
     icon: ShieldCheck,
     title: "We publish the requirements and check the accreditation",
-    body: "FaithWellness lists each standard here and confirms the accreditation with the issuer before a profile goes live.",
+    body: "Each church publishes its standard here from its FaithWellness dashboard. We confirm the accreditation with the church before a profile goes live.",
   },
 ];
 
@@ -52,12 +55,8 @@ const faqs = [
 ];
 
 export default async function AccreditationPage() {
-  const counselors = await getCounselors();
-  const countFor = (b: AccreditingBody) => counselors.filter((c) => c.church && b.churchSlugs.includes(c.church.slug)).length;
-  const groups = [
-    { title: "Denominations", bodies: accreditingBodies.filter((b) => b.kind === "denomination") },
-    { title: "Churches", bodies: accreditingBodies.filter((b) => b.kind === "church") },
-  ];
+  const [counselors, bodies] = await Promise.all([getCounselors(), getAccreditingBodies()]);
+  const countFor = (b: AccreditingBody) => counselors.filter((c) => c.church?.slug === b.slug).length;
 
   return (
     <main className="mx-auto flex w-full max-w-[1280px] flex-col gap-12 px-4 py-10 md:gap-16 md:px-8 md:py-14">
@@ -71,7 +70,7 @@ export default async function AccreditationPage() {
           exactly what each one requires, so a badge on a profile always means something you can check.
         </p>
         <p className="m-0 rounded-md border border-dashed border-peach-400 bg-peach-50 px-4 py-3 text-sm text-peach-800">
-          Prototype: the churches, denominations and requirements below are fictional samples.
+          Prototype: the churches and requirements below are fictional samples until real churches publish theirs.
         </p>
       </header>
 
@@ -97,13 +96,13 @@ export default async function AccreditationPage() {
         </ol>
       </section>
 
-      {groups.map((g) => (
-        <section key={g.title} aria-labelledby={`g-${g.title}`} className="flex flex-col gap-5">
-          <h2 id={`g-${g.title}`} className="m-0 font-display text-[28px] leading-[34px]">
-            {g.title}
+      <section aria-labelledby="churches" className="flex flex-col gap-5">
+          <h2 id="churches" className="m-0 font-display text-[28px] leading-[34px]">
+            Churches
           </h2>
+          {bodies.length === 0 && <p className="m-0 text-slate-600">No churches have published their requirements yet.</p>}
           <ul className="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(min(100%,340px),1fr))] gap-4 p-0 md:gap-6">
-            {g.bodies.map((b) => {
+            {bodies.map((b) => {
               const n = countFor(b);
               return (
                 <li key={b.slug}>
@@ -117,6 +116,7 @@ export default async function AccreditationPage() {
                         <span className="text-sm text-slate-600">
                           {b.tradition} · {b.location}
                         </span>
+                        {b.accreditedBy && <span className="text-sm text-slate-600">Accredited through {b.accreditedBy}</span>}
                       </div>
                       <ChevronRight size={20} strokeWidth={1.8} className="mt-1 flex-none text-slate-500" aria-hidden="true" />
                     </div>
@@ -133,8 +133,7 @@ export default async function AccreditationPage() {
               );
             })}
           </ul>
-        </section>
-      ))}
+      </section>
 
       <section aria-labelledby="faq" className="grid gap-6 md:grid-cols-[1fr_1.4fr] md:gap-10">
         <div className="flex flex-col gap-3">

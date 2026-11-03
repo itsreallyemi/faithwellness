@@ -429,7 +429,7 @@ function SignIn({ counselors }: { counselors: Counselor[] }) {
                   </span>
                 )}
               </div>
-              <ApplicationSummary app={mine.app} live={mine.live} hideAction={mine.app.status === "approved"} />
+              <ApplicationSummary app={mine.app} live={mine.live} accreditor={mine.accreditor} hideAction={mine.app.status === "approved"} />
             </Card>
           ) : auth === "signed-in" && s?.user ? (
             <Card padding="compact" className="flex flex-col gap-2">

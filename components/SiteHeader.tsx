@@ -35,6 +35,7 @@ const counselorLinks: NavLink[] = [
 const churchLinks = (slug: string): NavLink[] => [
   { href: `/church/${slug}`, label: "Dashboard", match: (p) => p === `/church/${slug}` },
   { href: `/church/${slug}#requests`, label: "Member requests", match: () => false },
+  { href: `/church/${slug}#accreditation`, label: "Accreditation", match: () => false },
   { href: `/counselors?church=${slug}`, label: "Our counselors", match: (p) => p.startsWith("/counselors") },
 ];
 const staffLinks: NavLink[] = [

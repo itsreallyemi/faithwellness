@@ -207,7 +207,7 @@ function CounselorApplication() {
   if (!mine?.app) return null;
   return (
     <Section id="application" title="Counselor application">
-      <ApplicationSummary app={mine.app} live={mine.live} />
+      <ApplicationSummary app={mine.app} live={mine.live} accreditor={mine.accreditor} />
     </Section>
   );
 }

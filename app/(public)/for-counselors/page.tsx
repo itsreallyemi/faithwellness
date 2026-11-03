@@ -17,10 +17,13 @@ import { CounselorCard } from "@/components/CounselorCard";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { accreditingBodies } from "@/lib/accreditation";
+import { getAccreditingBodies } from "@/lib/accreditation";
 import { getCounselors, getFocusAreas } from "@/lib/counselors";
 import { filterCounselors, parseFilters } from "@/lib/directory";
 import { ApplyForm } from "./ApplyForm";
+
+// Churches edit their accreditation from their dashboard; refresh the list every minute.
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "For counselors",
@@ -128,6 +131,7 @@ const faqs = [
 ];
 
 export default async function ForCounselorsPage() {
+  const accreditingBodies = await getAccreditingBodies();
   const [all, focusAreas] = await Promise.all([getCounselors(), getFocusAreas()]);
   const sample = filterCounselors(all, parseFilters({})).find((c) => c.slug === "ruth-okafor");
   const focusLabels = Object.fromEntries(focusAreas.map((a) => [a.slug, a.label]));

@@ -4,11 +4,10 @@ import { useEffect, useState } from "react";
 import { Check, CircleAlert } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
-import { accreditingBodies } from "@/lib/accreditation";
 import { NOT_LISTED, shortDate, type Application } from "@/lib/applications";
 import { authEnabled, supabaseBrowser, useAuthState } from "@/lib/supabase/client";
 
-export type MyApplication = { app: Application | null; live: boolean };
+export type MyApplication = { app: Application | null; live: boolean; accreditor?: string };
 
 /** The signed-in person's counselor application, and whether their profile is live yet. null while loading. */
 export function useMyApplication(): MyApplication | null {
@@ -26,23 +25,28 @@ export function useMyApplication(): MyApplication | null {
         const { data: c } = await sb.from("counselors").select("is_published").eq("id", app.user_id).maybeSingle();
         live = Boolean(c?.is_published);
       }
-      setState({ app, live });
+      // The accrediting church's name, for "We're confirming it with …".
+      let accreditor = app?.church_name ?? "";
+      if (app && app.accrediting_body !== NOT_LISTED) {
+        const { data: church } = await sb.from("churches").select("name").eq("slug", app.accrediting_body).maybeSingle();
+        accreditor = church?.name ?? accreditor;
+      }
+      setState({ app, live, accreditor });
     })();
   }, [auth]);
   return state;
 }
 
-export function accreditorName(app: Application) {
-  return app.accrediting_body === NOT_LISTED
-    ? app.church_name
-    : (accreditingBodies.find((b) => b.slug === app.accrediting_body)?.name ?? app.church_name);
+/** Who confirms the accreditation: the accrediting church's name, or the church they typed in. */
+export function accreditorName({ app, accreditor }: MyApplication & { app: Application }) {
+  return accreditor || app.church_name || "your church";
 }
 
 export type StepState = "done" | "current" | "attention" | "upcoming";
 export type Step = { title: string; detail: string; state: StepState };
 
 /** Application sent → accreditation check → approved → profile setup → live, with where they are now. */
-export function ApplicationTracker({ app, live }: MyApplication & { app: Application }) {
+export function ApplicationTracker({ app, live, accreditor }: MyApplication & { app: Application }) {
   const approved = app.status === "approved";
   const checkState: StepState = approved ? "done" : app.status === "submitted" ? "current" : "attention";
   const steps: Step[] = [
@@ -51,7 +55,7 @@ export function ApplicationTracker({ app, live }: MyApplication & { app: Applica
       title: "Accreditation check",
       detail:
         app.status === "submitted"
-          ? `We’re confirming it with ${accreditorName(app)}. This usually takes a few days.`
+          ? `We’re confirming it with ${accreditorName({ app, live, accreditor })}. This usually takes a few days.`
           : app.status === "needs_info"
             ? "We need a little more information from you."
             : app.status === "declined"
@@ -114,7 +118,7 @@ export function StepTracker({ steps, label }: { steps: Step[]; label: string }) 
 
 
 /** Tracker plus the one thing to do next. Used on the account page and the portal sign-in screen. */
-export function ApplicationSummary({ app, live, hideAction = false }: MyApplication & { app: Application; hideAction?: boolean }) {
+export function ApplicationSummary({ app, live, accreditor, hideAction = false }: MyApplication & { app: Application; hideAction?: boolean }) {
   const next =
     app.status === "needs_info" || app.status === "declined"
       ? { label: app.status === "declined" ? "See details" : "Update my application", href: "/for-counselors#apply" }
@@ -126,7 +130,7 @@ export function ApplicationSummary({ app, live, hideAction = false }: MyApplicat
       {(app.status === "needs_info" || app.status === "declined") && app.admin_note && (
         <p className="m-0 rounded-md border-l-4 border-peach-400 bg-cream px-4 py-3 text-[15px] whitespace-pre-line">{app.admin_note}</p>
       )}
-      <ApplicationTracker app={app} live={live} />
+      <ApplicationTracker app={app} live={live} accreditor={accreditor} />
       {!hideAction && (
         <Button href={next.href} variant={app.status === "submitted" ? "secondary" : "primary"} className="self-start">
           {next.label}

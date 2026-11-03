@@ -63,7 +63,9 @@ function RealApply({ bodies }: { bodies: Body[] }) {
   }
 
   const current = sent ?? mine?.app ?? null;
-  const tracker = current && <ApplicationTracker app={current} live={Boolean(mine?.live) && !sent} />;
+  const accreditor =
+    current && current.accrediting_body !== NOT_LISTED ? (bodies.find((b) => b.slug === current.accrediting_body)?.name ?? mine?.accreditor) : undefined;
+  const tracker = current && <ApplicationTracker app={current} live={Boolean(mine?.live) && !sent} accreditor={accreditor} />;
 
   if (current && !editing) {
     if (current.status === "approved") {
@@ -109,7 +111,7 @@ function RealApply({ bodies }: { bodies: Body[] }) {
     return (
       <StatusCard tone="waiting" title="Application received">
         <p className="m-0">
-          Sent {shortDate(current.submitted_at)}. We&rsquo;ll confirm your accreditation with {accreditorName(current)} and email you at{" "}
+          Sent {shortDate(current.submitted_at)}. We&rsquo;ll confirm your accreditation with {accreditorName({ app: current, live: false, accreditor })} and email you at{" "}
           <b className="text-slate-900">{current.email}</b> when there&rsquo;s news. You can check back here any time.
         </p>
         {tracker}

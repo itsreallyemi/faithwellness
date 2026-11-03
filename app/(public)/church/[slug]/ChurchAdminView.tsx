@@ -21,6 +21,7 @@ import {
 } from "@/lib/prototype/store";
 import { authEnabled, ownChurch, supabaseBrowser, useAccountKind, useAuthState } from "@/lib/supabase/client";
 import type { Church } from "@/lib/types";
+import { AccreditationEditor } from "./AccreditationEditor";
 
 export type AdminCounselor = { slug: string; name: string; title: string; avatarUrl: string | null; avatarTint: string };
 
@@ -138,6 +139,13 @@ function RealChurchAdmin({ church, counselors }: Props) {
         <NoMemberCare church={church} manage={manage} />
       )}
       <Counselors counselors={counselors} memberCare={codes.length > 0} />
+      <Section
+        id="accreditation"
+        title="Accreditation requirements"
+        intro="What your counselors had to do to be accredited by your church. FaithWellness publishes it on your accreditation page, so a badge on a profile means something people can check."
+      >
+        <AccreditationEditor churchSlug={church.slug} />
+      </Section>
       <ChurchPayouts church={church} ready={payoutsReady} />
     </div>
   );

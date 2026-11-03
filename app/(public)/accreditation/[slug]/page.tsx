@@ -6,25 +6,24 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { CrisisNotice } from "@/components/ui/CrisisNotice";
-import { accreditingBodies, getAccreditingBody } from "@/lib/accreditation";
+import { getAccreditingBody } from "@/lib/accreditation";
 import { getCounselors } from "@/lib/counselors";
 
 type Props = { params: Promise<{ slug: string }> };
 
-export function generateStaticParams() {
-  return accreditingBodies.map((b) => ({ slug: b.slug }));
-}
+// Churches edit their requirements from their dashboard; refresh every minute.
+export const revalidate = 60;
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const b = getAccreditingBody((await params).slug);
+  const b = await getAccreditingBody((await params).slug);
   return b ? { title: `${b.name} accreditation`, description: b.summary } : {};
 }
 
 export default async function AccreditingBodyPage({ params }: Props) {
-  const b = getAccreditingBody((await params).slug);
+  const b = await getAccreditingBody((await params).slug);
   if (!b) notFound();
-  const counselors = (await getCounselors()).filter((c) => c.church && b.churchSlugs.includes(c.church.slug));
-  const updated = new Date(`${b.updated}T12:00:00Z`).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  const counselors = (await getCounselors()).filter((c) => c.church?.slug === b.slug);
+  const updated = b.updated && new Date(b.updated).toLocaleDateString("en-US", { timeZone: "UTC", month: "long", day: "numeric", year: "numeric" });
 
   return (
     <main className="mx-auto flex w-full max-w-[1080px] flex-col gap-8 px-4 py-6 md:px-8 md:py-10">
@@ -34,12 +33,13 @@ export default async function AccreditingBodyPage({ params }: Props) {
       </Link>
 
       <header className="flex flex-col gap-3">
-        <span className="label-overline">{b.kind === "church" ? "Church" : "Denomination"} accreditation</span>
+        <span className="label-overline">Church accreditation</span>
         <h1 className="m-0 font-display text-[36px] leading-[1.08] md:text-[48px]">{b.name}</h1>
         <span className="text-base text-slate-600">
           {b.tradition} · {b.location}
+          {b.accreditedBy && ` · Accredited through ${b.accreditedBy}`}
         </span>
-        <p className="m-0 max-w-[720px] text-lg leading-[1.55]">{b.summary}</p>
+        {b.summary && <p className="m-0 max-w-[720px] text-lg leading-[1.55]">{b.summary}</p>}
         <div>
           <Badge>{b.credentialName}</Badge>
         </div>
@@ -65,30 +65,36 @@ export default async function AccreditingBodyPage({ params }: Props) {
             ))}
           </div>
           <p className="m-0 text-[13px] text-slate-600">
-            Set by {b.name}. FaithWellness publishes these as provided. Last updated {updated}.
+            Set by {b.accreditedBy || b.name}. FaithWellness publishes these as provided.{updated && ` Last updated ${updated}.`}
           </p>
       </section>
 
-      <div className="grid gap-4 sm:grid-cols-2 md:gap-6">
-        <Card as="section" aria-labelledby="renewal" padding="compact" className="flex gap-3.5">
-          <CalendarClock size={22} strokeWidth={1.8} className="mt-1 flex-none text-peach-700" aria-hidden="true" />
-          <div className="flex flex-col gap-1.5">
-            <h2 id="renewal" className="m-0 font-display text-[22px] leading-7">
-              Renewal
-            </h2>
-            <p className="m-0 text-[15px] leading-normal text-slate-600">{b.renewal}</p>
-          </div>
-        </Card>
-        <Card as="section" aria-labelledby="apply" padding="compact" className="flex gap-3.5">
-          <ClipboardList size={22} strokeWidth={1.8} className="mt-1 flex-none text-peach-700" aria-hidden="true" />
-          <div className="flex flex-col gap-1.5">
-            <h2 id="apply" className="m-0 font-display text-[22px] leading-7">
-              How counselors apply
-            </h2>
-            <p className="m-0 text-[15px] leading-normal text-slate-600">{b.howToApply}</p>
-          </div>
-        </Card>
-      </div>
+      {(b.renewal || b.howToApply) && (
+        <div className="grid gap-4 sm:grid-cols-2 md:gap-6">
+          {b.renewal && (
+            <Card as="section" aria-labelledby="renewal" padding="compact" className="flex gap-3.5">
+              <CalendarClock size={22} strokeWidth={1.8} className="mt-1 flex-none text-peach-700" aria-hidden="true" />
+              <div className="flex flex-col gap-1.5">
+                <h2 id="renewal" className="m-0 font-display text-[22px] leading-7">
+                  Renewal
+                </h2>
+                <p className="m-0 text-[15px] leading-normal text-slate-600">{b.renewal}</p>
+              </div>
+            </Card>
+          )}
+          {b.howToApply && (
+            <Card as="section" aria-labelledby="apply" padding="compact" className="flex gap-3.5">
+              <ClipboardList size={22} strokeWidth={1.8} className="mt-1 flex-none text-peach-700" aria-hidden="true" />
+              <div className="flex flex-col gap-1.5">
+                <h2 id="apply" className="m-0 font-display text-[22px] leading-7">
+                  How counselors apply
+                </h2>
+                <p className="m-0 text-[15px] leading-normal text-slate-600">{b.howToApply}</p>
+              </div>
+            </Card>
+          )}
+        </div>
+      )}
 
       <section aria-labelledby="accredited" className="flex flex-col gap-4">
         <h2 id="accredited" className="m-0 font-display text-[28px] leading-[34px]">
